@@ -6,6 +6,56 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+/**
+ * GET BRAND CONTEXT - Edge Function
+ * 
+ * ============================================
+ * PAYLOAD FORMAT (REQUEST):
+ * ============================================
+ * POST /functions/v1/get-brand-context
+ * Headers:
+ *   Authorization: Bearer <supabase_access_token>
+ *   Content-Type: application/json
+ * 
+ * Body:
+ * {
+ *   "brandId": string (required) - UUID of the brand_profiles record,
+ *   "guideMode": "PUBLISHED" | "DRAFT" (optional, default: "PUBLISHED")
+ * }
+ * 
+ * ============================================
+ * RESPONSE FORMAT:
+ * ============================================
+ * Returns BrandContextV1 object with:
+ * - identity: { name, mission, vision, tagline, archetype }
+ * - positioning: { statement, elevator_pitch, target_audience, unique_value }
+ * - tone_of_voice: { description, traits: Record<string, number>, example }
+ * - audience_personas: PersonaSummary[]
+ * - persona_rules: { personas, default_persona_id }
+ * - active_channels: Array<{ channel, purpose }>
+ * - channel_rules: ChannelRule[]
+ * - recent_decisions: Array<{ question, decision, rationale, decided_by, decided_at }>
+ * - facts: { services, service_areas, guarantees, key_claims, legal_notes, verified_facts }
+ * - evidence: BrandEvidenceItem[]
+ * - guardrails: Guardrail[]
+ * - tone_rules: ToneRules
+ * - forbidden_terms: string[] (matchable words/phrases)
+ * - required_terms: string[] (matchable words/phrases)
+ * - policy_negatives: string[] (AI prompt instructions)
+ * - policy_positives: string[] (AI prompt instructions)
+ * - seasonalContext: { currentDate, currentSeason, upcomingEvents }
+ * - industryTrends: { lastUpdated, trends }
+ * - topPerformingContent: { headlines, ctas, subjectLines }
+ * - meta: { brand_id, guide_version_id, guide_mode, generated_at, completeness_score, completeness_breakdown }
+ * 
+ * ============================================
+ * NOTE: This function uses the legacy `brand_profiles` table schema.
+ * The Nexavo Marknadsapp uses a simpler `brands` table.
+ * For the new app, consider creating a simplified version or
+ * adapting the frontend to use this format.
+ * ============================================
+ */
+
 // ============================================
 // TYPE DEFINITIONS
 // ============================================

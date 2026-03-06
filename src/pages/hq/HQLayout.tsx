@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import { Routes, Route, NavLink, Navigate } from 'react-router-dom'
+import { Routes, Route, NavLink, Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
+import { useBrandContext } from '@/contexts/BrandContext'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import {
@@ -13,9 +14,14 @@ import {
   Settings,
   LogOut,
   Menu,
-  X
+  X,
+  ArrowRight
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+
+// Brand pages
+import BrandOverviewPage from './brand/BrandOverviewPage'
+import BrandSetupPage from './brand/BrandSetupPage'
 
 const navItems = [
   { to: '/hq', icon: LayoutDashboard, label: 'Dashboard', end: true },
@@ -89,8 +95,38 @@ function PlaceholderPage({ title }: { title: string }) {
   )
 }
 
+function OnboardingPrompt() {
+  return (
+    <div className="p-8">
+      <div className="max-w-xl mx-auto text-center py-12">
+        <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-6">
+          <Palette className="w-8 h-8 text-blue-600" />
+        </div>
+        <h1 className="text-2xl font-bold mb-3">Välkommen!</h1>
+        <p className="text-slate-600 mb-6">
+          Börja med att sätta upp ert varumärke. Detta är grunden för all AI-generering och säkerställer att allt material matchar er profil.
+        </p>
+        <NavLink to="/hq/brand/setup">
+          <Button size="lg">
+            Sätt upp varumärke
+            <ArrowRight className="w-5 h-5 ml-2" />
+          </Button>
+        </NavLink>
+      </div>
+    </div>
+  )
+}
+
 export default function HQLayout() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const { hasBrand, loading: brandLoading } = useBrandContext()
+  const location = useLocation()
+
+  // Check if we're on brand setup page
+  const isOnBrandSetup = location.pathname === '/hq/brand/setup'
+
+  // Redirect to onboarding if no brand and not already on setup
+  const showOnboarding = !brandLoading && !hasBrand && !isOnBrandSetup
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -130,16 +166,21 @@ export default function HQLayout() {
 
       {/* Main content */}
       <div className="lg:ml-64">
-        <Routes>
-          <Route index element={<PlaceholderPage title="Dashboard" />} />
-          <Route path="campaigns" element={<PlaceholderPage title="Kampanjer" />} />
-          <Route path="brand" element={<PlaceholderPage title="Varumärke" />} />
-          <Route path="assets" element={<PlaceholderPage title="Materialbank" />} />
-          <Route path="calendar" element={<PlaceholderPage title="Kalender" />} />
-          <Route path="franchisees" element={<PlaceholderPage title="Franchisetagare" />} />
-          <Route path="settings" element={<PlaceholderPage title="Inställningar" />} />
-          <Route path="*" element={<Navigate to="/hq" replace />} />
-        </Routes>
+        {showOnboarding ? (
+          <OnboardingPrompt />
+        ) : (
+          <Routes>
+            <Route index element={<PlaceholderPage title="Dashboard" />} />
+            <Route path="campaigns" element={<PlaceholderPage title="Kampanjer" />} />
+            <Route path="brand" element={<BrandOverviewPage />} />
+            <Route path="brand/setup" element={<BrandSetupPage />} />
+            <Route path="assets" element={<PlaceholderPage title="Materialbank" />} />
+            <Route path="calendar" element={<PlaceholderPage title="Kalender" />} />
+            <Route path="franchisees" element={<PlaceholderPage title="Franchisetagare" />} />
+            <Route path="settings" element={<PlaceholderPage title="Inställningar" />} />
+            <Route path="*" element={<Navigate to="/hq" replace />} />
+          </Routes>
+        )}
       </div>
     </div>
   )

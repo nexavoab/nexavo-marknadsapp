@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from '@/contexts/AuthContext'
+import { BrandProvider } from '@/contexts/BrandContext'
 
 import LoginPage from '@/pages/LoginPage'
 import HQLayout from '@/pages/hq/HQLayout'
@@ -27,10 +28,12 @@ function AppRouter() {
 
   if (isHQ) {
     return (
-      <Routes>
-        <Route path="/hq/*" element={<HQLayout />} />
-        <Route path="*" element={<Navigate to="/hq" replace />} />
-      </Routes>
+      <BrandProvider>
+        <Routes>
+          <Route path="/hq/*" element={<HQLayout />} />
+          <Route path="*" element={<Navigate to="/hq" replace />} />
+        </Routes>
+      </BrandProvider>
     )
   }
 

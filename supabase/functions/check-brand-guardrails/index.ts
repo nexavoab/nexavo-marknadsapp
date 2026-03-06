@@ -4,8 +4,66 @@ import { corsHeaders } from "../_shared/cors.ts";
 import { callAIGateway } from "../_shared/ai-gateway.ts";
 
 /**
+ * CHECK BRAND GUARDRAILS - Edge Function
+ * 
  * @deprecated Use `run-preflight-check` edge function instead.
  * This endpoint is maintained for backwards compatibility.
+ * 
+ * ============================================
+ * PAYLOAD FORMAT (REQUEST):
+ * ============================================
+ * POST /functions/v1/check-brand-guardrails
+ * Headers:
+ *   Authorization: Bearer <supabase_access_token>
+ *   Content-Type: application/json
+ * 
+ * Body:
+ * {
+ *   "content": string (required) - The text content to check against guardrails,
+ *   "content_type": string (optional, default: "text") - Type of content being checked
+ * }
+ * 
+ * ============================================
+ * RESPONSE FORMAT:
+ * ============================================
+ * {
+ *   "passed": boolean - true if no violations found,
+ *   "has_errors": boolean - true if any 'error' severity violations,
+ *   "has_warnings": boolean - true if any 'warning' severity violations,
+ *   "violations": ViolationResult[] - array of violation objects:
+ *     {
+ *       "guardrail_id": string,
+ *       "guardrail_name": string,
+ *       "severity": "error" | "warning" | "info",
+ *       "message": string,
+ *       "details": string[] (optional) - specific words/elements that violated
+ *     },
+ *   "checked_guardrails": number - count of active guardrails checked
+ * }
+ * 
+ * ============================================
+ * GUARDRAIL TYPES SUPPORTED:
+ * ============================================
+ * - forbidden_words: Checks if content contains any forbidden words
+ *   rule_config: { words: string[] }
+ * 
+ * - required_elements: Checks if content contains all required elements
+ *   rule_config: { elements: string[] }
+ * 
+ * - length_check: Checks if content meets length requirements
+ *   rule_config: { min_length?: number, max_length?: number }
+ * 
+ * - tone_check: Uses AI to check tonality matches target
+ *   rule_config: { target_tone?: string, forbidden_tones?: string[] }
+ * 
+ * - custom: Checks content against regex patterns
+ *   rule_config: { patterns: string[], message?: string }
+ * 
+ * ============================================
+ * NOTE: This function reads from `brand_guardrails` table filtered by user_id.
+ * For the new Nexavo Marknadsapp, guardrails are stored in the `brands` table
+ * as `forbidden_words` and `required_disclaimers` fields.
+ * ============================================
  */
 
 interface BrandGuardrail {
