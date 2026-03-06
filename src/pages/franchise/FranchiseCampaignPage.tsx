@@ -9,13 +9,15 @@ import {
   type FormatCategory,
 } from '@/lib/formatLabels'
 import { Button } from '@/components/ui/button'
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
+import { EmptyState } from '@/components/ui/EmptyState'
+import { toast } from 'sonner'
 import type { Campaign, Asset } from '@/types'
 import {
   ArrowLeft,
   Download,
   Loader2,
   ImageIcon,
-  FolderOpen,
 } from 'lucide-react'
 
 type FilterCategory = 'all' | FormatCategory
@@ -59,8 +61,13 @@ export default function FranchiseCampaignPage() {
     setDownloadingIds((prev) => new Set(prev).add(asset.id))
 
     try {
-      // Increment download counter
-      await incrementDownload(asset.id)
+      // Increment download counter with error handling
+      try {
+        await incrementDownload(asset.id)
+      } catch (err) {
+        console.error('Failed to increment download count:', err)
+        toast.error('Kunde inte registrera nedladdningen')
+      }
 
       // Fetch and trigger download
       const response = await fetch(asset.public_url)
@@ -82,6 +89,7 @@ export default function FranchiseCampaignPage() {
       )
     } catch (err) {
       console.error('Download failed:', err)
+      toast.error('Nedladdningen misslyckades')
     } finally {
       setDownloadingIds((prev) => {
         const next = new Set(prev)
@@ -94,23 +102,22 @@ export default function FranchiseCampaignPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-16">
-        <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
+        <LoadingSpinner size="lg" />
       </div>
     )
   }
 
   if (!campaign) {
     return (
-      <div className="text-center py-16">
-        <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 mb-4">
-          <FolderOpen className="w-8 h-8 text-gray-400" />
-        </div>
-        <h2 className="text-xl font-semibold text-gray-900 mb-2">Kampanj hittades inte</h2>
-        <Button variant="outline" onClick={() => navigate('/portal')}>
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Tillbaka till portalen
-        </Button>
-      </div>
+      <EmptyState
+        icon="📂"
+        title="Kampanj hittades inte"
+        description="Kampanjen du letar efter kunde inte hittas."
+        action={{
+          label: 'Tillbaka till portalen',
+          onClick: () => navigate('/portal'),
+        }}
+      />
     )
   }
 
@@ -165,10 +172,11 @@ export default function FranchiseCampaignPage() {
 
       {/* Assets by category */}
       {!hasAssets ? (
-        <div className="text-center py-12 bg-gray-50 rounded-lg">
-          <FolderOpen className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-          <p className="text-gray-500">Inget material tillgängligt för denna kampanj ännu.</p>
-        </div>
+        <EmptyState
+          icon="📦"
+          title="Inget material ännu"
+          description="Det finns inget material tillgängligt för denna kampanj ännu."
+        />
       ) : (
         <div className="space-y-8">
           {CATEGORY_ORDER.filter(
@@ -210,21 +218,28 @@ interface AssetCardProps {
 function AssetCard({ asset, isDownloading, onDownload }: AssetCardProps) {
   const formatInfo = asset.format ? FORMAT_LABELS[asset.format] : null
 
+  // Fix: Thumbnail fallback with placeholder
+  const imageSrc = asset.thumbnail_url ?? asset.public_url ?? '/placeholder.png'
+
   return (
     <div className="bg-white rounded-lg border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
       {/* Preview */}
       <div className="aspect-video bg-gray-100 relative">
-        {asset.thumbnail_url || asset.public_url ? (
+        {imageSrc && imageSrc !== '/placeholder.png' ? (
           <img
-            src={asset.thumbnail_url || asset.public_url!}
+            src={imageSrc}
             alt={asset.name}
             className="w-full h-full object-cover"
+            onError={(e) => {
+              // Fallback if image fails to load
+              e.currentTarget.style.display = 'none'
+              e.currentTarget.nextElementSibling?.classList.remove('hidden')
+            }}
           />
-        ) : (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <ImageIcon className="w-12 h-12 text-gray-300" />
-          </div>
-        )}
+        ) : null}
+        <div className={`absolute inset-0 flex items-center justify-center ${imageSrc && imageSrc !== '/placeholder.png' ? 'hidden' : ''}`}>
+          <ImageIcon className="w-12 h-12 text-gray-300" />
+        </div>
       </div>
 
       {/* Info */}

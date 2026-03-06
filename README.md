@@ -1,73 +1,87 @@
-# React + TypeScript + Vite
+# Nexavo Marknadsapp
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+AI-driven franchise marketing platform. HQ skapar kampanjer, franchisetagare hämtar material.
 
-Currently, two official plugins are available:
+## Stack
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- React 18 + TypeScript + Vite
+- Supabase (Postgres + Edge Functions + Storage)
+- shadcn/ui + Tailwind CSS
+- Vercel (deploy)
 
-## React Compiler
+## Komma igång
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+1. Klona repot
+2. `npm install`
+3. Kopiera `.env.example` till `.env.local` och fyll i Supabase-credentials
+4. Kör `supabase/schema.sql` mot ditt Supabase-projekt
+5. Kör `supabase/storage.sql` för Storage-buckets
+6. `npm run dev`
 
-## Expanding the ESLint configuration
+## Supabase Setup
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+Skapa ett Supabase-projekt på supabase.com och kopiera URL + anon key.
+Kör migrations i Supabase SQL Editor:
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+1. `supabase/schema.sql` — Tabeller + RLS
+2. `supabase/storage.sql` — Storage buckets
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+## Roller
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+- `hq_admin` — Skapar kampanjer, styr varumärket, publicerar material
+- `franchisee` — Loggar in på portal, laddar ner material
+
+## Edge Functions
+
+10 AI-funktioner i `supabase/functions/`:
+
+- `get-brand-context` — Hämtar brand DNA
+- `check-brand-guardrails` — Brand compliance
+- `generate-concept` — Kampanjkoncept
+- `generate-campaign-pack` — Kampanjpaket (alla format)
+- `copy-engine` — Kanalanpassad copy
+- `generate-image` — DALL-E bildgenerering
+- `composite-images` — Bildkompositing
+- `generate-template-layout` — Template-design
+- `export-brand-assets` — Asset-export
+- `reflow-template` — Format-anpassning
+
+## Projektstruktur
+
+```
+src/
+  components/   UI-komponenter
+  contexts/     React contexts (Auth, Brand)
+  hooks/        Custom hooks
+  lib/          Utilities (supabase, storage, adCompositor, brandContextAdapter)
+  pages/
+    hq/         HQ-vyer (dashboard, kampanjer, brand, kalender, settings)
+    franchise/  Franchisee-portal
+  types/        TypeScript-typer
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Scripts
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+- `npm run dev` — Starta utvecklingsserver
+- `npm run build` — Bygg för produktion
+- `npm run preview` — Förhandsvisa produktionsbygge
+- `npx tsc --noEmit` — Typkontroll
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+## Features
+
+### HQ Portal
+- **Dashboard** — Översikt med statistik och senaste kampanjer
+- **Kampanjer** — Skapa, redigera och hantera kampanjer
+- **Varumärke** — Sätt upp brand DNA (färger, typografi, ton)
+- **Kalender** — Månadsvy med kampanjdatum
+- **Franchisetagare** — Lista över franchisetagare
+- **Inställningar** — Profilinställningar
+
+### Franchisee Portal
+- **Kampanjvy** — Se tillgängliga kampanjer
+- **Material** — Ladda ner assets organiserade per kanal
+- **Filter** — Filtrera efter kategori (sociala medier, print, etc.)
+
+## Utvecklat med 🤖
+
+Byggt under 6 sprints med AI-assisterad utveckling.

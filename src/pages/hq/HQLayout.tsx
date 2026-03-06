@@ -28,6 +28,12 @@ import CampaignsPage from './campaigns/CampaignsPage'
 import CampaignNewPage from './campaigns/CampaignNewPage'
 import CampaignDetailPage from './campaigns/CampaignDetailPage'
 
+// Dashboard and other pages
+import DashboardPage from './DashboardPage'
+import FranchiseesPage from './FranchiseesPage'
+import CalendarPage from './CalendarPage'
+import SettingsPage from './SettingsPage'
+
 // Internal test pages (no nav links)
 import AIPipelineTestPage from './AIPipelineTestPage'
 
@@ -178,7 +184,7 @@ export default function HQLayout() {
           <OnboardingPrompt />
         ) : (
           <Routes>
-            <Route index element={<PlaceholderPage title="Dashboard" />} />
+            <Route index element={<DashboardPage />} />
             {/* Campaign routes */}
             <Route path="campaigns" element={<CampaignsPage />} />
             <Route path="campaigns/new" element={<CampaignNewPage />} />
@@ -188,9 +194,9 @@ export default function HQLayout() {
             <Route path="brand/setup" element={<BrandSetupPage />} />
             {/* Other pages */}
             <Route path="assets" element={<PlaceholderPage title="Materialbank" />} />
-            <Route path="calendar" element={<PlaceholderPage title="Kalender" />} />
-            <Route path="franchisees" element={<PlaceholderPage title="Franchisetagare" />} />
-            <Route path="settings" element={<PlaceholderPage title="Inställningar" />} />
+            <Route path="calendar" element={<CalendarPage />} />
+            <Route path="franchisees" element={<FranchiseesPage />} />
+            <Route path="settings" element={<SettingsPage />} />
             {/* Internal test pages - no nav links */}
             <Route path="ai-test" element={<AIPipelineTestPage />} />
             <Route path="*" element={<Navigate to="/hq" replace />} />
