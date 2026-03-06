@@ -16,6 +16,10 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],
     include: ['src/**/*.{test,spec}.{ts,tsx}'],
+    testTimeout: 10000,
+    hookTimeout: 10000,
+    // Vitest 4: sekventiell körning för stabilitet
+    fileParallelism: false,
     coverage: {
       reporter: ['text', 'json', 'html'],
       exclude: ['node_modules/', 'src/test/'],

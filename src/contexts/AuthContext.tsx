@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
+import { createContext, useContext, useEffect, useState, useMemo, useCallback, type ReactNode } from 'react'
 import type { User } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
 import type { AppUser } from '@/types'
@@ -19,6 +19,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [appUser, setAppUser] = useState<AppUser | null>(null)
   const [loading, setLoading] = useState(true)
+
+  const fetchAppUser = useCallback(async (authId: string) => {
+    const { data } = await supabase
+      .from('app_users')
+      .select('*')
+      .eq('auth_id', authId)
+      .single()
+    
+    setAppUser(data)
+    setLoading(false)
+  }, [])
 
   useEffect(() => {
     // Hämta session
@@ -43,33 +54,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     })
 
     return () => subscription.unsubscribe()
-  }, [])
+  }, [fetchAppUser])
 
-  async function fetchAppUser(authId: string) {
-    const { data } = await supabase
-      .from('app_users')
-      .select('*')
-      .eq('auth_id', authId)
-      .single()
-    
-    setAppUser(data)
-    setLoading(false)
-  }
-
-  async function signIn(email: string, password: string) {
+  const signIn = useCallback(async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({ email, password })
     if (error) throw error
-  }
+  }, [])
 
-  async function signOut() {
+  const signOut = useCallback(async () => {
     await supabase.auth.signOut()
-  }
+  }, [])
 
   const isHQ = appUser?.role === 'hq_admin'
   const isFranchisee = appUser?.role === 'franchisee'
 
+  const value = useMemo(() => ({
+    user, appUser, loading, signIn, signOut, isHQ, isFranchisee,
+  }), [user, appUser, loading, signIn, signOut, isHQ, isFranchisee])
+
   return (
-    <AuthContext.Provider value={{ user, appUser, loading, signIn, signOut, isHQ, isFranchisee }}>
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   )

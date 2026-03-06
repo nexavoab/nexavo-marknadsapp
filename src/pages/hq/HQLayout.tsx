@@ -51,7 +51,7 @@ function Sidebar({ onClose }: { onClose?: () => void }) {
   const { appUser, signOut } = useAuth()
 
   return (
-    <div className="flex flex-col h-full bg-slate-900 text-white">
+    <aside className="flex flex-col h-full bg-slate-900 text-white">
       <div className="p-4">
         <h1 className="text-xl font-bold">Nexavo</h1>
         <p className="text-sm text-slate-400">Marknadsapp</p>
@@ -94,7 +94,7 @@ function Sidebar({ onClose }: { onClose?: () => void }) {
           Logga ut
         </Button>
       </div>
-    </div>
+    </aside>
   )
 }
 
@@ -144,6 +144,14 @@ export default function HQLayout() {
 
   return (
     <div className="min-h-screen bg-slate-50">
+      {/* Skip link for accessibility */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:bg-white focus:px-4 focus:py-2 focus:rounded-lg focus:shadow-lg focus:text-sm font-medium"
+      >
+        Hoppa till huvudinnehåll
+      </a>
+
       {/* Mobile menu button */}
       <div className="lg:hidden fixed top-4 left-4 z-50">
         <Button
@@ -179,7 +187,7 @@ export default function HQLayout() {
       </div>
 
       {/* Main content */}
-      <div className="lg:ml-64">
+      <main id="main-content" className="lg:ml-64">
         {showOnboarding ? (
           <OnboardingPrompt />
         ) : (
@@ -202,7 +210,7 @@ export default function HQLayout() {
             <Route path="*" element={<Navigate to="/hq" replace />} />
           </Routes>
         )}
-      </div>
+      </main>
     </div>
   )
 }

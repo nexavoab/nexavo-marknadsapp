@@ -622,6 +622,10 @@ function StepPreview({ draft, setDraft, onBack, onComplete }: StepPreviewProps) 
       return
     }
 
+    // Confirmation before publishing
+    const confirmed = window.confirm('Publicera kampanjen? Den blir synlig för franchisetagare direkt.')
+    if (!confirmed) return
+
     setPublishing(true)
 
     try {

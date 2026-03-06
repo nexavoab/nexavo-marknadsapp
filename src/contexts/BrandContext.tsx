@@ -1,4 +1,4 @@
-import { createContext, useContext, type ReactNode } from 'react'
+import { createContext, useContext, useMemo, type ReactNode } from 'react'
 import type { Brand } from '@/types'
 import { useBrand } from '@/hooks/useBrand'
 
@@ -16,17 +16,17 @@ const BrandContext = createContext<BrandContextType | undefined>(undefined)
 export function BrandProvider({ children }: { children: ReactNode }) {
   const { brand, loading, error, saveBrand, refetch } = useBrand()
 
+  const value = useMemo(() => ({
+    brand,
+    loading,
+    error,
+    saveBrand,
+    refetch,
+    hasBrand: !!brand,
+  }), [brand, loading, error, saveBrand, refetch])
+
   return (
-    <BrandContext.Provider
-      value={{
-        brand,
-        loading,
-        error,
-        saveBrand,
-        refetch,
-        hasBrand: !!brand,
-      }}
-    >
+    <BrandContext.Provider value={value}>
       {children}
     </BrandContext.Provider>
   )

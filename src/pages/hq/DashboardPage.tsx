@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Palette, Users, Plus } from 'lucide-react'
+import { toast } from 'sonner'
 import type { CampaignStatus } from '@/types'
 
 interface DashboardStats {
@@ -119,26 +120,29 @@ export default function DashboardPage() {
           assetCount: assetsRes.count ?? 0,
         })
 
-        // Fetch format counts for each campaign
+        // Fetch format counts efficiently (no N+1)
         if (campaignsRes.data) {
-          const campaignsWithCounts = await Promise.all(
-            campaignsRes.data.map(async (c) => {
-              const { count } = await supabase
-                .from('assets')
-                .select('id', { count: 'exact', head: true })
-                .eq('campaign_id', c.id)
-              return {
-                id: c.id,
-                name: c.name,
-                status: c.status as CampaignStatus,
-                formatCount: count ?? 0,
-              }
-            })
-          )
+          const { data: allAssets } = await supabase
+            .from('assets')
+            .select('campaign_id')
+            .eq('organization_id', appUser.organization_id)
+
+          const countMap = (allAssets ?? []).reduce((acc, a) => {
+            if (a.campaign_id) acc[a.campaign_id] = (acc[a.campaign_id] || 0) + 1
+            return acc
+          }, {} as Record<string, number>)
+
+          const campaignsWithCounts = campaignsRes.data.map(c => ({
+            id: c.id,
+            name: c.name,
+            status: c.status as CampaignStatus,
+            formatCount: countMap[c.id] || 0,
+          }))
           setRecentCampaigns(campaignsWithCounts)
         }
       } catch (err) {
         console.error('Failed to fetch dashboard data:', err)
+        toast.error('Kunde inte ladda dashboard-data')
       } finally {
         setLoading(false)
       }

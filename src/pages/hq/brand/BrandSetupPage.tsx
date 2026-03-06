@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
+import { toast } from 'sonner'
 import { 
   ChevronRight, 
   ChevronLeft, 
@@ -119,7 +120,7 @@ export default function BrandSetupPage() {
       }))
     } catch (error) {
       console.error('Upload error:', error)
-      alert('Kunde inte ladda upp logotyp')
+      toast.error('Kunde inte ladda upp logotyp')
     } finally {
       setUploading(false)
     }
@@ -153,7 +154,7 @@ export default function BrandSetupPage() {
       return true
     } catch (error) {
       console.error('Save error:', error)
-      alert('Kunde inte spara')
+      toast.error('Kunde inte spara')
       return false
     } finally {
       setSaving(false)

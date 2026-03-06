@@ -73,6 +73,14 @@ export default function FranchisePortalPage() {
             key={campaign.id}
             className="hover:shadow-md transition-shadow cursor-pointer group"
             onClick={() => navigate(`/portal/campaign/${campaign.id}`)}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault()
+                navigate(`/portal/campaign/${campaign.id}`)
+              }
+            }}
           >
             <CardHeader className="pb-3">
               <div className="flex items-start justify-between">

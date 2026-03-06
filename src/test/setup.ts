@@ -1,5 +1,11 @@
 import '@testing-library/jest-dom'
-import { vi } from 'vitest'
+import { cleanup } from '@testing-library/react'
+import { afterEach, vi } from 'vitest'
+
+// Rensa DOM efter varje test för att undvika föroreningar
+afterEach(() => {
+  cleanup()
+})
 
 // Mock Supabase globalt
 vi.mock('@/lib/supabase', () => ({

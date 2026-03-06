@@ -45,6 +45,8 @@ export default function LoginPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 disabled={loading}
+                autoComplete="email"
+                aria-describedby={error ? 'login-error' : undefined}
               />
             </div>
             <div className="space-y-2">
@@ -57,10 +59,16 @@ export default function LoginPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 disabled={loading}
+                autoComplete="current-password"
+                aria-describedby={error ? 'login-error' : undefined}
               />
             </div>
             {error && (
-              <div className="text-sm text-red-600 bg-red-50 p-3 rounded-md">
+              <div
+                id="login-error"
+                role="alert"
+                className="text-sm text-red-600 bg-red-50 p-3 rounded-md"
+              >
                 {error}
               </div>
             )}
