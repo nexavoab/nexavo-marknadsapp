@@ -23,6 +23,9 @@ import { cn } from '@/lib/utils'
 import BrandOverviewPage from './brand/BrandOverviewPage'
 import BrandSetupPage from './brand/BrandSetupPage'
 
+// Internal test pages (no nav links)
+import AIPipelineTestPage from './AIPipelineTestPage'
+
 const navItems = [
   { to: '/hq', icon: LayoutDashboard, label: 'Dashboard', end: true },
   { to: '/hq/campaigns', icon: Megaphone, label: 'Kampanjer' },
@@ -178,6 +181,8 @@ export default function HQLayout() {
             <Route path="calendar" element={<PlaceholderPage title="Kalender" />} />
             <Route path="franchisees" element={<PlaceholderPage title="Franchisetagare" />} />
             <Route path="settings" element={<PlaceholderPage title="Inställningar" />} />
+            {/* Internal test pages - no nav links */}
+            <Route path="ai-test" element={<AIPipelineTestPage />} />
             <Route path="*" element={<Navigate to="/hq" replace />} />
           </Routes>
         )}
