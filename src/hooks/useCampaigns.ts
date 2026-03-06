@@ -30,7 +30,7 @@ export function useCampaigns(): UseCampaignsReturn {
 
     const { data, error } = await supabase
       .from('campaigns')
-      .select('*')
+      .select('id, name, description, status, channels, start_date, end_date, created_at, organization_id')
       .eq('organization_id', appUser.organization_id)
       .order('created_at', { ascending: false })
 
@@ -48,7 +48,7 @@ export function useCampaigns(): UseCampaignsReturn {
 
     const { data, error } = await supabase
       .from('campaigns')
-      .select('*')
+      .select('id, name, description, status, channels, start_date, end_date, created_at, organization_id')
       .eq('id', id)
       .eq('organization_id', appUser.organization_id)
       .single()

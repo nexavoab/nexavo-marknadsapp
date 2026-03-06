@@ -90,7 +90,7 @@ export default function AIPipelineTestPage() {
 
   async function runConceptTest() {
     setConceptTest({ status: 'loading' })
-    const start = Date.now()
+    const start = performance.now()
 
     try {
       const result = await generateConcept({
@@ -102,20 +102,20 @@ export default function AIPipelineTestPage() {
       setConceptTest({
         status: 'success',
         data: result,
-        duration: Date.now() - start,
+        duration: Math.round(performance.now() - start),
       })
     } catch (err) {
       setConceptTest({
         status: 'error',
         error: err instanceof Error ? err.message : 'Unknown error',
-        duration: Date.now() - start,
+        duration: Math.round(performance.now() - start),
       })
     }
   }
 
   async function runGuardrailTest() {
     setGuardrailTest({ status: 'loading' })
-    const start = Date.now()
+    const start = performance.now()
 
     try {
       const result = await checkGuardrails({
@@ -126,20 +126,20 @@ export default function AIPipelineTestPage() {
       setGuardrailTest({
         status: 'success',
         data: result,
-        duration: Date.now() - start,
+        duration: Math.round(performance.now() - start),
       })
     } catch (err) {
       setGuardrailTest({
         status: 'error',
         error: err instanceof Error ? err.message : 'Unknown error',
-        duration: Date.now() - start,
+        duration: Math.round(performance.now() - start),
       })
     }
   }
 
   async function runImageTest() {
     setImageTest({ status: 'loading' })
-    const start = Date.now()
+    const start = performance.now()
 
     try {
       const result = await generateImage({
@@ -152,20 +152,20 @@ export default function AIPipelineTestPage() {
       setImageTest({
         status: 'success',
         data: result,
-        duration: Date.now() - start,
+        duration: Math.round(performance.now() - start),
       })
     } catch (err) {
       setImageTest({
         status: 'error',
         error: err instanceof Error ? err.message : 'Unknown error',
-        duration: Date.now() - start,
+        duration: Math.round(performance.now() - start),
       })
     }
   }
 
   function runCanvasTest() {
     setCanvasTest({ status: 'loading' })
-    const start = Date.now()
+    const start = performance.now()
 
     try {
       const preview = compositeAdPreview({
@@ -184,13 +184,13 @@ export default function AIPipelineTestPage() {
       setCanvasTest({
         status: 'success',
         data: { format: 'instagram_feed', dataUrlLength: preview.length },
-        duration: Date.now() - start,
+        duration: Math.round(performance.now() - start),
       })
     } catch (err) {
       setCanvasTest({
         status: 'error',
         error: err instanceof Error ? err.message : 'Unknown error',
-        duration: Date.now() - start,
+        duration: Math.round(performance.now() - start),
       })
     }
   }

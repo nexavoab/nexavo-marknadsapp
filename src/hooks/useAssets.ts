@@ -163,7 +163,7 @@ export function useAssets(): UseAssetsReturn {
 
     let query = supabase
       .from('assets')
-      .select('*')
+      .select('id, name, type, format, public_url, thumbnail_url, mime_type, download_count, campaign_id, organization_id, created_at')
       .eq('organization_id', appUser.organization_id)
       .order('created_at', { ascending: false })
 

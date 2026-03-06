@@ -20,7 +20,7 @@ export function useBrand() {
       setError(null)
       const { data, error } = await supabase
         .from('brands')
-        .select('*')
+        .select('id, organization_id, name, tone_traits, colors, logos, typography, imagery, forbidden_words, required_disclaimers, created_at, updated_at')
         .eq('organization_id', appUser.organization_id)
         .single()
 

@@ -97,6 +97,7 @@ export function DeviceMockup({
         <img
           src={imageUrl}
           alt={format}
+          loading="lazy"
           className="absolute inset-0 w-full h-full object-cover"
         />
       ) : (

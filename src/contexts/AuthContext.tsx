@@ -23,7 +23,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const fetchAppUser = useCallback(async (authId: string) => {
     const { data } = await supabase
       .from('app_users')
-      .select('*')
+      .select('id, auth_id, organization_id, role, email, name, created_at, updated_at')
       .eq('auth_id', authId)
       .single()
     

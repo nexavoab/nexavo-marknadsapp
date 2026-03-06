@@ -34,7 +34,7 @@ describe('useCampaigns', () => {
     })
 
     expect(supabase.from).toHaveBeenCalledWith('campaigns')
-    expect(selectMock).toHaveBeenCalledWith('*')
+    expect(selectMock).toHaveBeenCalledWith('id, name, description, status, channels, start_date, end_date, created_at, organization_id')
     expect(eqMock).toHaveBeenCalledWith('organization_id', 'org-1')
     expect(campaigns).toEqual(mockCampaigns)
   })

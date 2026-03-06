@@ -6,6 +6,7 @@ import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { EmptyState } from '@/components/ui/EmptyState'
+import { toast } from 'sonner'
 import { UserPlus, MapPin, Mail } from 'lucide-react'
 import type { Franchisee } from '@/types'
 
@@ -21,7 +22,7 @@ export default function FranchiseesPage() {
       try {
         const { data, error } = await supabase
           .from('franchisees')
-          .select('*')
+          .select('id, name, region, contact_email, is_active, organization_id, created_at, updated_at')
           .eq('organization_id', appUser.organization_id)
           .order('name', { ascending: true })
 
@@ -29,6 +30,7 @@ export default function FranchiseesPage() {
         setFranchisees(data || [])
       } catch (err) {
         console.error('Failed to fetch franchisees:', err)
+        toast.error('Kunde inte hämta franchisetagare')
       } finally {
         setLoading(false)
       }

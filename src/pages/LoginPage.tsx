@@ -28,7 +28,7 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4">
-      <Card className="w-full max-w-md">
+      <Card className="w-full max-w-sm">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl font-bold">Nexavo Marknadsapp</CardTitle>
           <CardDescription>Logga in för att fortsätta</CardDescription>
@@ -47,6 +47,7 @@ export default function LoginPage() {
                 disabled={loading}
                 autoComplete="email"
                 aria-describedby={error ? 'login-error' : undefined}
+                className="min-h-[36px]"
               />
             </div>
             <div className="space-y-2">
@@ -61,6 +62,7 @@ export default function LoginPage() {
                 disabled={loading}
                 autoComplete="current-password"
                 aria-describedby={error ? 'login-error' : undefined}
+                className="min-h-[36px]"
               />
             </div>
             {error && (
@@ -72,7 +74,7 @@ export default function LoginPage() {
                 {error}
               </div>
             )}
-            <Button type="submit" className="w-full" disabled={loading}>
+            <Button type="submit" className="w-full min-h-[44px]" disabled={loading}>
               {loading ? 'Loggar in...' : 'Logga in'}
             </Button>
           </form>

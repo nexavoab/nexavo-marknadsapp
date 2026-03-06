@@ -47,6 +47,7 @@ export default function FranchiseCampaignPage() {
         setAssets(assetsData)
       } catch (err) {
         console.error('Failed to load campaign:', err)
+        toast.error('Kunde inte ladda kampanjdata')
       } finally {
         setLoading(false)
       }
@@ -229,6 +230,7 @@ function AssetCard({ asset, isDownloading, onDownload }: AssetCardProps) {
           <img
             src={imageSrc}
             alt={asset.name}
+            loading="lazy"
             className="w-full h-full object-cover"
             onError={(e) => {
               // Fallback if image fails to load

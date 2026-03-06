@@ -25,7 +25,7 @@ export default function SettingsPage() {
       try {
         const { data, error } = await supabase
           .from('organizations')
-          .select('*')
+          .select('id, name, slug, logo_url, created_at, updated_at')
           .eq('id', appUser.organization_id)
           .single()
 
@@ -33,6 +33,7 @@ export default function SettingsPage() {
         setOrganization(data)
       } catch (err) {
         console.error('Failed to fetch organization:', err)
+        toast.error('Kunde inte hämta organisationsinformation')
       } finally {
         setLoading(false)
       }

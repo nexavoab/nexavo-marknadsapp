@@ -17,7 +17,7 @@ export function useFranchiseeData() {
       setError(null)
       const { data, error } = await supabase
         .from('campaigns')
-        .select('*')
+        .select('id, name, description, status, channels, start_date, end_date, created_at')
         .eq('organization_id', appUser.organization_id)
         .eq('status', 'active')
         .order('created_at', { ascending: false })
@@ -42,7 +42,7 @@ export function useFranchiseeData() {
 
     const { data, error } = await supabase
       .from('assets')
-      .select('*')
+      .select('id, name, public_url, type, format, mime_type, thumbnail_url, download_count, created_at')
       .eq('campaign_id', campaignId)
       .eq('organization_id', appUser.organization_id)
       .order('created_at', { ascending: false })
@@ -56,7 +56,7 @@ export function useFranchiseeData() {
 
     const { data, error } = await supabase
       .from('campaigns')
-      .select('*')
+      .select('id, name, description, status, channels, start_date, end_date, created_at')
       .eq('id', campaignId)
       .eq('organization_id', appUser.organization_id)
       .single()

@@ -382,10 +382,15 @@ CREATE POLICY "HQ admins can delete users in their organization"
 -- SPRINT 5: FRANCHISEE PORTAL FUNCTIONS
 -- =============================================================================
 
--- Increment download counter atomically
+-- Increment download counter atomically (with org check)
 CREATE OR REPLACE FUNCTION increment_download_count(asset_id UUID)
 RETURNS void AS $$
-  UPDATE assets SET download_count = download_count + 1 WHERE id = asset_id;
+  UPDATE assets 
+  SET download_count = download_count + 1 
+  WHERE id = asset_id 
+    AND organization_id = (
+      SELECT organization_id FROM app_users WHERE auth_id = auth.uid()
+    );
 $$ LANGUAGE sql SECURITY DEFINER;
 
 -- Grant execute to authenticated users

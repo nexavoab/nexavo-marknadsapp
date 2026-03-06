@@ -308,6 +308,7 @@ export default function BrandSetupPage() {
                       <img
                         src={logos.primary_url}
                         alt="Logotyp"
+                        loading="lazy"
                         className="h-16 w-auto object-contain bg-white border rounded p-2"
                       />
                       <button
@@ -343,6 +344,7 @@ export default function BrandSetupPage() {
                       <img
                         src={logos.dark_bg_url}
                         alt="Logotyp mörk"
+                        loading="lazy"
                         className="h-16 w-auto object-contain bg-slate-800 border rounded p-2"
                       />
                       <button

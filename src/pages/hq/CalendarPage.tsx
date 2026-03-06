@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
+import { toast } from 'sonner'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 
 
@@ -88,6 +89,7 @@ export default function CalendarPage() {
         setCampaigns(data || [])
       } catch (err) {
         console.error('Failed to fetch campaigns:', err)
+        toast.error('Kunde inte hämta kampanjer')
       } finally {
         setLoading(false)
       }

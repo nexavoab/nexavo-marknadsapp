@@ -41,7 +41,7 @@ const navItems = [
   { to: '/hq', icon: LayoutDashboard, label: 'Dashboard', end: true },
   { to: '/hq/campaigns', icon: Megaphone, label: 'Kampanjer' },
   { to: '/hq/brand', icon: Palette, label: 'Varumärke' },
-  { to: '/hq/assets', icon: FolderOpen, label: 'Materialbank' },
+  { to: '/hq/assets', icon: FolderOpen, label: 'Materialbank', disabled: true, badge: 'Snart' },
   { to: '/hq/calendar', icon: Calendar, label: 'Kalender' },
   { to: '/hq/franchisees', icon: Users, label: 'Franchisetagare' },
   { to: '/hq/settings', icon: Settings, label: 'Inställningar' },
@@ -59,23 +59,38 @@ function Sidebar({ onClose }: { onClose?: () => void }) {
       <Separator className="bg-slate-700" />
       <nav className="flex-1 p-2">
         {navItems.map((item) => (
-          <NavLink
-            key={item.to}
-            to={item.to}
-            end={item.end}
-            onClick={onClose}
-            className={({ isActive }) =>
-              cn(
-                'flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors',
-                isActive
-                  ? 'bg-slate-800 text-white'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-800'
-              )
-            }
-          >
-            <item.icon className="h-5 w-5" />
-            {item.label}
-          </NavLink>
+          item.disabled ? (
+            <div
+              key={item.to}
+              className="flex items-center gap-3 px-3 py-2 rounded-md text-sm text-slate-500 opacity-50 pointer-events-none"
+            >
+              <item.icon className="h-5 w-5" />
+              {item.label}
+              {item.badge && (
+                <span className="ml-auto text-xs bg-slate-700 text-slate-300 px-2 py-0.5 rounded">
+                  {item.badge}
+                </span>
+              )}
+            </div>
+          ) : (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              end={item.end}
+              onClick={onClose}
+              className={({ isActive }) =>
+                cn(
+                  'flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors',
+                  isActive
+                    ? 'bg-slate-800 text-white'
+                    : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                )
+              }
+            >
+              <item.icon className="h-5 w-5" />
+              {item.label}
+            </NavLink>
+          )
         ))}
       </nav>
       <Separator className="bg-slate-700" />

@@ -15,6 +15,14 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 import type {
@@ -511,6 +519,7 @@ function StepPreview({ draft, setDraft, onBack, onComplete }: StepPreviewProps) 
   const { createCampaign, updateCampaignStatus } = useCampaigns()
   const [activeTab, setActiveTab] = useState(0)
   const [publishing, setPublishing] = useState(false)
+  const [showPublishDialog, setShowPublishDialog] = useState(false)
   const [guardrailResults, setGuardrailResults] = useState<Record<string, GuardrailsResponse>>({})
   const [generatingImages, setGeneratingImages] = useState<Record<string, boolean>>({})
 
@@ -602,7 +611,7 @@ function StepPreview({ draft, setDraft, onBack, onComplete }: StepPreviewProps) 
     }
   }
 
-  const handlePublish = async () => {
+  const handlePublishClick = () => {
     if (!brand) return
 
     const approvedFormats = draft.formats.filter((f) => f.approved)
@@ -622,11 +631,16 @@ function StepPreview({ draft, setDraft, onBack, onComplete }: StepPreviewProps) 
       return
     }
 
-    // Confirmation before publishing
-    const confirmed = window.confirm('Publicera kampanjen? Den blir synlig för franchisetagare direkt.')
-    if (!confirmed) return
+    // Show confirmation dialog
+    setShowPublishDialog(true)
+  }
 
+  const handlePublishConfirm = async () => {
+    if (!brand) return
+
+    setShowPublishDialog(false)
     setPublishing(true)
+    const approvedFormats = draft.formats.filter((f) => f.approved)
 
     try {
       // 1. Create composites and upload for each approved format
@@ -816,7 +830,7 @@ function StepPreview({ draft, setDraft, onBack, onComplete }: StepPreviewProps) 
             <Save className="w-4 h-4 mr-1" />
             Spara utkast
           </Button>
-          <Button onClick={handlePublish} disabled={publishing || approvedCount === 0}>
+          <Button onClick={handlePublishClick} disabled={publishing || approvedCount === 0}>
             {publishing ? (
               <>
                 <Loader2 className="w-4 h-4 mr-1 animate-spin" />
@@ -831,6 +845,26 @@ function StepPreview({ draft, setDraft, onBack, onComplete }: StepPreviewProps) 
           </Button>
         </div>
       </div>
+
+      {/* Publish Confirmation Dialog */}
+      <Dialog open={showPublishDialog} onOpenChange={setShowPublishDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Publicera kampanj?</DialogTitle>
+            <DialogDescription>
+              Kampanjen blir synlig för franchisetagare direkt efter publicering.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowPublishDialog(false)}>
+              Avbryt
+            </Button>
+            <Button onClick={handlePublishConfirm}>
+              Publicera
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

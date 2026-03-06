@@ -29,7 +29,7 @@ describe('useBrand', () => {
     })
 
     expect(supabase.from).toHaveBeenCalledWith('brands')
-    expect(selectMock).toHaveBeenCalledWith('*')
+    expect(selectMock).toHaveBeenCalledWith('id, organization_id, name, tone_traits, colors, logos, typography, imagery, forbidden_words, required_disclaimers, created_at, updated_at')
     expect(eqMock).toHaveBeenCalledWith('organization_id', 'org-1')
     expect(singleMock).toHaveBeenCalled()
     expect(result.current.brand).toEqual(mockBrand)
