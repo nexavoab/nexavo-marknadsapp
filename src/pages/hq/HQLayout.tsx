@@ -23,6 +23,11 @@ import { cn } from '@/lib/utils'
 import BrandOverviewPage from './brand/BrandOverviewPage'
 import BrandSetupPage from './brand/BrandSetupPage'
 
+// Campaign pages
+import CampaignsPage from './campaigns/CampaignsPage'
+import CampaignNewPage from './campaigns/CampaignNewPage'
+import CampaignDetailPage from './campaigns/CampaignDetailPage'
+
 // Internal test pages (no nav links)
 import AIPipelineTestPage from './AIPipelineTestPage'
 
@@ -174,9 +179,14 @@ export default function HQLayout() {
         ) : (
           <Routes>
             <Route index element={<PlaceholderPage title="Dashboard" />} />
-            <Route path="campaigns" element={<PlaceholderPage title="Kampanjer" />} />
+            {/* Campaign routes */}
+            <Route path="campaigns" element={<CampaignsPage />} />
+            <Route path="campaigns/new" element={<CampaignNewPage />} />
+            <Route path="campaigns/:id" element={<CampaignDetailPage />} />
+            {/* Brand routes */}
             <Route path="brand" element={<BrandOverviewPage />} />
             <Route path="brand/setup" element={<BrandSetupPage />} />
+            {/* Other pages */}
             <Route path="assets" element={<PlaceholderPage title="Materialbank" />} />
             <Route path="calendar" element={<PlaceholderPage title="Kalender" />} />
             <Route path="franchisees" element={<PlaceholderPage title="Franchisetagare" />} />

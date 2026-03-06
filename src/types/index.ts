@@ -143,6 +143,40 @@ export interface Franchisee {
   updated_at: string
 }
 
+// ============ Sprint 4: Campaign Types ============
+
+export interface CampaignFormat {
+  type: TemplateFormat
+  copy: string
+  headline: string
+  cta: string
+  image_prompt: string
+  generated_image_url?: string
+  composite_url?: string
+  approved: boolean
+}
+
+export interface CampaignConcept {
+  headline: string
+  subheadline: string
+  keyMessage: string
+  visualDirection: string
+  emotionalHook: string
+}
+
+export interface CampaignDraft {
+  id?: string
+  brand_id?: string
+  name: string
+  description: string
+  channels: CampaignChannel[]
+  start_date: string
+  end_date: string
+  concept?: CampaignConcept
+  formats: CampaignFormat[]
+  status: CampaignStatus
+}
+
 export interface AppUser {
   id: string
   auth_id: string
