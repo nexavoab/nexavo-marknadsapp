@@ -377,3 +377,16 @@ CREATE POLICY "Users can update their own profile"
 CREATE POLICY "HQ admins can delete users in their organization"
     ON app_users FOR DELETE
     USING (organization_id = get_user_organization_id() AND is_hq_admin());
+
+-- =============================================================================
+-- SPRINT 5: FRANCHISEE PORTAL FUNCTIONS
+-- =============================================================================
+
+-- Increment download counter atomically
+CREATE OR REPLACE FUNCTION increment_download_count(asset_id UUID)
+RETURNS void AS $$
+  UPDATE assets SET download_count = download_count + 1 WHERE id = asset_id;
+$$ LANGUAGE sql SECURITY DEFINER;
+
+-- Grant execute to authenticated users
+GRANT EXECUTE ON FUNCTION increment_download_count(UUID) TO authenticated;

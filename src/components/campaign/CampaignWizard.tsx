@@ -3,7 +3,7 @@
  * 4-stegs wizard: Brief → Tema → Kanaler → Preview & Publicera
  */
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { useBrandContext } from '@/contexts/BrandContext'
 import { useAIGateway, type ConceptResponse, type GuardrailsResponse } from '@/hooks/useAIGateway'
 import { useAssets } from '@/hooks/useAssets'
@@ -242,6 +242,7 @@ function StepBrief({ draft, setDraft, onNext }: StepProps) {
               id="start_date"
               type="date"
               value={draft.start_date}
+              min={new Date().toISOString().split('T')[0]}
               onChange={(e) => setDraft((d) => ({ ...d, start_date: e.target.value }))}
               className="mt-1"
             />
@@ -252,6 +253,7 @@ function StepBrief({ draft, setDraft, onNext }: StepProps) {
               id="end_date"
               type="date"
               value={draft.end_date}
+              min={draft.start_date || new Date().toISOString().split('T')[0]}
               onChange={(e) => setDraft((d) => ({ ...d, end_date: e.target.value }))}
               className="mt-1"
             />
@@ -535,9 +537,9 @@ function StepPreview({ draft, setDraft, onBack, onComplete }: StepPreviewProps) 
   }, [brand, draft.formats, checkGuardrails])
 
   // Check guardrails when formats change
-  useState(() => {
+  useEffect(() => {
     checkAllGuardrails()
-  })
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleGenerateImage = async (formatIndex: number) => {
     const format = draft.formats[formatIndex]
