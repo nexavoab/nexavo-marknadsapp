@@ -28,7 +28,7 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4">
-      <Card className="w-full max-w-sm">
+      <Card className="w-full max-w-sm" style={{ maxWidth: '400px' }}>
         <CardHeader className="text-center">
           <CardTitle className="text-2xl font-bold">Nexavo Marknadsapp</CardTitle>
           <CardDescription>Logga in för att fortsätta</CardDescription>
