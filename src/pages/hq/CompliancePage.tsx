@@ -4,6 +4,7 @@
  */
 
 import { useState, useMemo } from 'react'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import {
@@ -17,6 +18,7 @@ import {
   Download,
   ShieldCheck,
   ChevronDown,
+  Bell,
 } from 'lucide-react'
 
 const STATUS_CONFIG: Record<
@@ -65,6 +67,36 @@ export default function CompliancePage() {
 
     return { activated, pending, skipped, total, percentage }
   }, [selectedCampaignId, franchisees])
+
+  // Calculate total stats across ALL campaigns
+  const totalStats = useMemo(() => {
+    let totalActivated = 0
+    let totalPending = 0
+    let totalEntries = 0
+
+    franchisees.forEach((f) => {
+      campaigns.forEach((c) => {
+        const status = f.campaignStatus[c.id]
+        if (status === 'activated') totalActivated++
+        if (status === 'pending') totalPending++
+        totalEntries++
+      })
+    })
+
+    const activationRate = totalEntries > 0
+      ? Math.round((totalActivated / totalEntries) * 100)
+      : 0
+
+    return { totalActivated, totalPending, activationRate }
+  }, [franchisees, campaigns])
+
+  // Handle remind button click
+  const handleRemind = (franchiseeId: string) => {
+    const franchisee = franchisees.find((f) => f.id === franchiseeId)
+    if (franchisee) {
+      toast.success(`Påminnelse skickad till ${franchisee.name}`)
+    }
+  }
 
   // Generate CSV content
   const generateCSV = () => {
@@ -119,6 +151,22 @@ export default function CompliancePage() {
         </Button>
       </div>
 
+      {/* KPI Summary Header */}
+      <div className="grid grid-cols-3 gap-4 mb-6">
+        <div className="bg-card border border-border rounded-lg p-4 text-center">
+          <div className="text-2xl font-bold text-foreground">{totalStats.totalActivated}</div>
+          <div className="text-sm text-muted-foreground">Aktiverade totalt</div>
+        </div>
+        <div className="bg-card border border-border rounded-lg p-4 text-center">
+          <div className="text-2xl font-bold text-amber-500">{totalStats.totalPending}</div>
+          <div className="text-sm text-muted-foreground">Väntar på svar</div>
+        </div>
+        <div className="bg-card border border-border rounded-lg p-4 text-center">
+          <div className="text-2xl font-bold text-foreground">{totalStats.activationRate}%</div>
+          <div className="text-sm text-muted-foreground">Aktiveringsgrad</div>
+        </div>
+      </div>
+
       {/* Campaign Filter */}
       <div className="mb-6">
         <div className="relative inline-block">
@@ -160,6 +208,9 @@ export default function CompliancePage() {
             </div>
           )}
         </div>
+        <p className="text-sm text-muted-foreground mt-1">
+          Visar aktivering för vald kampanj. Välj en annan kampanj för att se dess status.
+        </p>
       </div>
 
       {/* Progress Overview */}
@@ -249,6 +300,15 @@ export default function CompliancePage() {
                     <div className="flex items-center gap-2">
                       <StatusIcon className={cn('w-5 h-5', config.className)} />
                       <span className={config.className}>{config.label}</span>
+                      {(status === 'pending' || status === 'skipped') && (
+                        <button
+                          onClick={() => handleRemind(franchisee.id)}
+                          className="text-xs text-primary hover:underline ml-2 flex items-center gap-1"
+                        >
+                          <Bell className="w-3 h-3" />
+                          Påminn
+                        </button>
+                      )}
                     </div>
                   </td>
                   <td className="px-6 py-4 text-muted-foreground">
