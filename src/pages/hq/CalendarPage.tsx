@@ -63,14 +63,24 @@ function formatDateKey(date: Date): string {
   return date.toISOString().split('T')[0]
 }
 
-const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
-  active: { bg: 'bg-emerald-500', text: 'text-white' },
-  draft: { bg: 'bg-amber-400', text: 'text-amber-900' },
-  planned: { bg: 'bg-blue-400', text: 'text-white' },
-  scheduled: { bg: 'bg-blue-400', text: 'text-white' },
-  completed: { bg: 'bg-slate-400', text: 'text-white' },
-  cancelled: { bg: 'bg-gray-300 opacity-50', text: 'text-gray-700' },
-  archived: { bg: 'bg-gray-300', text: 'text-gray-700' },
+const STATUS_COLORS: Record<string, { bg: string; text: string; badge: string }> = {
+  active: { bg: 'bg-emerald-500', text: 'text-white', badge: 'bg-emerald-100 text-emerald-800' },
+  draft: { bg: 'bg-amber-400', text: 'text-amber-900', badge: 'bg-amber-100 text-amber-800' },
+  planned: { bg: 'bg-blue-400', text: 'text-white', badge: 'bg-blue-100 text-blue-800' },
+  scheduled: { bg: 'bg-blue-400', text: 'text-white', badge: 'bg-blue-100 text-blue-800' },
+  completed: { bg: 'bg-slate-400', text: 'text-white', badge: 'bg-slate-100 text-slate-700' },
+  cancelled: { bg: 'bg-gray-300 opacity-50', text: 'text-gray-700', badge: 'bg-gray-100 text-gray-600' },
+  archived: { bg: 'bg-gray-300', text: 'text-gray-700', badge: 'bg-gray-100 text-gray-600' },
+}
+
+const STATUS_LABELS: Record<string, string> = {
+  active: 'Aktiv',
+  draft: 'Utkast',
+  planned: 'Planerad',
+  scheduled: 'Schemalagd',
+  completed: 'Avslutad',
+  cancelled: 'Avbruten',
+  archived: 'Arkiverad',
 }
 
 export default function CalendarPage() {
@@ -204,6 +214,35 @@ export default function CalendarPage() {
 
   const today = formatDateKey(new Date())
 
+  // Agenda list for mobile - show campaigns for current month
+  const agendaItems = useMemo(() => {
+    const parseLocalDate = (dateStr: string): Date => {
+      const [y, m, d] = dateStr.split('T')[0].split('-').map(Number)
+      return new Date(y, m - 1, d)
+    }
+    
+    const monthStart = new Date(year, month, 1)
+    const monthEnd = new Date(year, month + 1, 0, 23, 59, 59)
+    
+    return campaigns
+      .filter(c => {
+        if (!c.start_date) return false
+        const start = parseLocalDate(c.start_date)
+        const end = c.end_date ? parseLocalDate(c.end_date) : start
+        return start <= monthEnd && end >= monthStart
+      })
+      .sort((a, b) => {
+        const aStart = parseLocalDate(a.start_date!)
+        const bStart = parseLocalDate(b.start_date!)
+        return aStart.getTime() - bStart.getTime()
+      })
+      .map(c => {
+        const start = parseLocalDate(c.start_date!)
+        const end = c.end_date ? parseLocalDate(c.end_date) : start
+        return { ...c, startDate: start, endDate: end }
+      })
+  }, [campaigns, year, month])
+
   return (
     <div className="p-4 md:p-8 space-y-6">
       {/* Header */}
@@ -216,8 +255,80 @@ export default function CalendarPage() {
         </div>
       </div>
 
-      {/* Calendar navigation */}
-      <Card className="p-4 overflow-x-auto">
+      {/* Mobile Agenda View */}
+      <div className="md:hidden">
+        <Card className="p-4">
+          <div className="flex items-center justify-between mb-4">
+            <Button variant="outline" size="sm" onClick={goToPreviousMonth}>
+              <ChevronLeft className="w-4 h-4" />
+            </Button>
+            <div className="flex items-center gap-2">
+              <h2 className="text-base font-semibold">
+                {MONTHS[month]} {year}
+              </h2>
+              <Button variant="ghost" size="sm" onClick={goToToday} className="text-xs">
+                Idag
+              </Button>
+            </div>
+            <Button variant="outline" size="sm" onClick={goToNextMonth}>
+              <ChevronRight className="w-4 h-4" />
+            </Button>
+          </div>
+
+          {loading ? (
+            <div className="flex justify-center py-8">
+              <LoadingSpinner size="lg" />
+            </div>
+          ) : agendaItems.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-8 text-center">
+              <div className="w-12 h-12 bg-muted rounded-full flex items-center justify-center mb-3">
+                <CalendarDays className="w-6 h-6 text-muted-foreground" />
+              </div>
+              <h3 className="text-sm font-medium text-foreground mb-1">
+                Inga kampanjer
+              </h3>
+              <p className="text-xs text-muted-foreground">
+                {MONTHS[month]} {year}
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {agendaItems.map((campaign) => {
+                const colors = STATUS_COLORS[campaign.status] || STATUS_COLORS.draft
+                const statusLabel = STATUS_LABELS[campaign.status] || campaign.status
+                const formatMobileDate = (date: Date) => 
+                  date.toLocaleDateString('sv-SE', { day: 'numeric', month: 'short' })
+
+                return (
+                  <button
+                    key={campaign.id}
+                    onClick={() => navigate(`/hq/campaigns/${campaign.id}`)}
+                    className="w-full text-left p-3 rounded-lg border border-border hover:border-primary/50 hover:shadow-sm transition-all bg-card"
+                  >
+                    <div className="flex items-start justify-between gap-2 mb-1">
+                      <h4 className="font-medium text-foreground text-sm truncate">
+                        {campaign.name}
+                      </h4>
+                      <span className={`text-xs px-2 py-0.5 rounded-full ${colors.badge}`}>
+                        {statusLabel}
+                      </span>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {formatMobileDate(campaign.startDate)}
+                      {campaign.endDate.getTime() !== campaign.startDate.getTime() && (
+                        <> → {formatMobileDate(campaign.endDate)}</>
+                      )}
+                    </p>
+                  </button>
+                )
+              })}
+            </div>
+          )}
+        </Card>
+      </div>
+
+      {/* Desktop Calendar View */}
+      <Card className="hidden md:block p-4 overflow-x-auto">
         <div className="flex items-center justify-between mb-6 min-w-[600px]">
           <Button variant="outline" size="sm" onClick={goToPreviousMonth}>
             <ChevronLeft className="w-4 h-4" />

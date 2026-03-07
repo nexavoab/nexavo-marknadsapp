@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { supabase } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { Palette, Users, Plus, Megaphone, Download, FolderOpen, Inbox } from 'lucide-react'
+import { Palette, Users, Plus, Megaphone, Download, FolderOpen, Inbox, AlertCircle, CheckCircle2, ArrowRight } from 'lucide-react'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
@@ -22,6 +22,11 @@ interface RecentCampaign {
   name: string
   status: CampaignStatus
   formatCount: number
+}
+
+interface AttentionItems {
+  pendingApproval: number
+  inactiveFranchisees: number
 }
 
 const STATUS_STYLES: Record<CampaignStatus, { color: string; icon: string; label: string }> = {
@@ -77,6 +82,77 @@ function StatCard({
   )
 }
 
+function AttentionSection({
+  pendingApproval,
+  inactiveFranchisees,
+  onViewCampaigns,
+  onViewFranchisees,
+}: {
+  pendingApproval: number
+  inactiveFranchisees: number
+  onViewCampaigns: () => void
+  onViewFranchisees: () => void
+}) {
+  const hasItems = pendingApproval > 0 || inactiveFranchisees > 0
+
+  if (!hasItems) {
+    return (
+      <Card className="p-4 border-green-200 bg-green-50/50">
+        <div className="flex items-center gap-3">
+          <div className="h-9 w-9 rounded-full bg-green-100 flex items-center justify-center">
+            <CheckCircle2 className="h-5 w-5 text-green-600" />
+          </div>
+          <div>
+            <h3 className="font-medium text-green-900">Allt ser bra ut! ✓</h3>
+            <p className="text-sm text-green-700">Inga åtgärder krävs just nu</p>
+          </div>
+        </div>
+      </Card>
+    )
+  }
+
+  return (
+    <Card className="p-4 border-amber-200 bg-amber-50/50">
+      <div className="flex items-center gap-3 mb-3">
+        <div className="h-9 w-9 rounded-full bg-amber-100 flex items-center justify-center">
+          <AlertCircle className="h-5 w-5 text-amber-600" />
+        </div>
+        <h3 className="font-medium text-amber-900">Behöver uppmärksamhet</h3>
+      </div>
+      <div className="space-y-2">
+        {pendingApproval > 0 && (
+          <button
+            onClick={onViewCampaigns}
+            className="w-full flex items-center justify-between p-3 rounded-lg bg-white border border-amber-200 hover:border-amber-300 hover:shadow-sm transition-all text-left group"
+          >
+            <div className="flex items-center gap-3">
+              <Megaphone className="h-4 w-4 text-amber-600" />
+              <span className="text-sm text-foreground">
+                <strong>{pendingApproval}</strong> kampanj{pendingApproval !== 1 ? 'er' : ''} väntar på godkännande
+              </span>
+            </div>
+            <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
+          </button>
+        )}
+        {inactiveFranchisees > 0 && (
+          <button
+            onClick={onViewFranchisees}
+            className="w-full flex items-center justify-between p-3 rounded-lg bg-white border border-amber-200 hover:border-amber-300 hover:shadow-sm transition-all text-left group"
+          >
+            <div className="flex items-center gap-3">
+              <Users className="h-4 w-4 text-amber-600" />
+              <span className="text-sm text-foreground">
+                <strong>{inactiveFranchisees}</strong> franchisetagare ej aktiverad{inactiveFranchisees !== 1 ? 'e' : ''}
+              </span>
+            </div>
+            <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
+          </button>
+        )}
+      </div>
+    </Card>
+  )
+}
+
 export default function DashboardPage() {
   const { appUser } = useAuth()
   const navigate = useNavigate()
@@ -87,6 +163,10 @@ export default function DashboardPage() {
     assetCount: null,
   })
   const [recentCampaigns, setRecentCampaigns] = useState<RecentCampaign[]>([])
+  const [attentionItems, setAttentionItems] = useState<AttentionItems>({
+    pendingApproval: 0,
+    inactiveFranchisees: 0,
+  })
   const [loading, setLoading] = useState(true)
 
   // Max 1.5s skeleton loading
@@ -109,6 +189,8 @@ export default function DashboardPage() {
           franchiseesRes,
           assetsRes,
           campaignsRes,
+          pendingCampaignsRes,
+          inactiveFranchiseesRes,
         ] = await Promise.all([
           // Active campaigns count
           supabase
@@ -139,6 +221,18 @@ export default function DashboardPage() {
             .eq('organization_id', appUser.organization_id)
             .order('created_at', { ascending: false })
             .limit(5),
+          // Campaigns pending approval (draft status)
+          supabase
+            .from('campaigns')
+            .select('id', { count: 'exact', head: true })
+            .eq('organization_id', appUser.organization_id)
+            .eq('status', 'draft'),
+          // Inactive franchisees
+          supabase
+            .from('franchisees')
+            .select('id', { count: 'exact', head: true })
+            .eq('organization_id', appUser.organization_id)
+            .eq('is_active', false),
         ])
 
         // Calculate total downloads
@@ -152,6 +246,12 @@ export default function DashboardPage() {
           totalDownloads,
           franchiseeCount: franchiseesRes.count ?? 0,
           assetCount: assetsRes.count ?? 0,
+        })
+
+        // Set attention items
+        setAttentionItems({
+          pendingApproval: pendingCampaignsRes.count ?? 0,
+          inactiveFranchisees: inactiveFranchiseesRes.count ?? 0,
         })
 
         // Fetch format counts efficiently (no N+1)
@@ -186,7 +286,7 @@ export default function DashboardPage() {
   }, [appUser?.organization_id])
 
   return (
-    <div className="p-8 space-y-8">
+    <div className="p-4 md:p-8 space-y-6 md:space-y-8">
       {/* Header */}
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-foreground">
@@ -197,8 +297,18 @@ export default function DashboardPage() {
         </p>
       </div>
 
+      {/* Attention Section */}
+      {!loading && (
+        <AttentionSection
+          pendingApproval={attentionItems.pendingApproval}
+          inactiveFranchisees={attentionItems.inactiveFranchisees}
+          onViewCampaigns={() => navigate('/hq/campaigns')}
+          onViewFranchisees={() => navigate('/hq/franchisees')}
+        />
+      )}
+
       {/* Stats grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <StatCard
           label="Aktiva kampanjer"
           value={stats.activeCampaigns}
@@ -232,9 +342,9 @@ export default function DashboardPage() {
       </div>
 
       {/* Widget Grid */}
-      <div className="grid grid-cols-3 gap-4 mb-6">
-        {/* Revenue Over Time — 2/3 bredd */}
-        <div className="col-span-2">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
+        {/* Revenue Over Time — 2/3 bredd på desktop */}
+        <div className="col-span-1 lg:col-span-2">
           <Card className="p-6">
             <div className="flex items-center justify-between mb-4">
               <div>
@@ -264,8 +374,8 @@ export default function DashboardPage() {
           </Card>
         </div>
 
-        {/* Franchisetagare per region — 1/3 bredd */}
-        <div className="col-span-1">
+        {/* Franchisetagare per region — 1/3 bredd på desktop */}
+        <div className="col-span-1 lg:col-span-1">
           <Card className="p-6 h-full">
             <h3 className="font-semibold text-foreground mb-1">Franchisetagare</h3>
             <p className="text-xs text-muted-foreground mb-4">Per region</p>
@@ -296,7 +406,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Bottom row: 3 kolumner */}
-      <div className="grid grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
         {/* Kampanjstatus donut */}
         <Card className="p-6">
           <h3 className="font-semibold text-foreground mb-1">Kampanjstatus</h3>
