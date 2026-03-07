@@ -15,7 +15,7 @@ interface KPICardProps {
   value: number | null
   loading: boolean
   trend?: number // Percentage change
-  trendLabel?: string
+  trendLabel?: string // Default: "jmf förra månaden"
   icon?: React.ElementType
   format?: 'number' | 'currency' | 'percent'
   details?: {
@@ -34,7 +34,7 @@ export function KPICard({
   value,
   loading,
   trend,
-  trendLabel = 'Compared to last month',
+  trendLabel = 'jmf förra månaden',
   icon: Icon,
   format = 'number',
   details,
