@@ -1,6 +1,4 @@
 import { useState } from 'react'
-import { Card } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
 import {
   Dialog,
   DialogContent,
@@ -9,16 +7,17 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { cn } from '@/lib/utils'
-import { TrendingUp, TrendingDown, Minus, ArrowRight } from 'lucide-react'
+import { TrendingUp, TrendingDown, ArrowRight } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 
 interface KPICardProps {
   label: string
-  description: string
   value: number | null
   loading: boolean
-  trend?: number // Percentage change, positive = up, negative = down
+  trend?: number // Percentage change
   trendLabel?: string
   icon?: React.ElementType
+  format?: 'number' | 'currency' | 'percent'
   details?: {
     title: string
     content: React.ReactNode
@@ -32,12 +31,12 @@ interface KPICardProps {
 
 export function KPICard({
   label,
-  description,
   value,
   loading,
   trend,
-  trendLabel = 'vs föregående månad',
+  trendLabel = 'Compared to last month',
   icon: Icon,
+  format = 'number',
   details,
   emptyState,
 }: KPICardProps) {
@@ -45,52 +44,35 @@ export function KPICard({
   const displayValue = loading ? null : (value ?? 0)
   const isZero = displayValue === 0 && emptyState
 
-  // Determine trend direction and styling
-  const getTrendConfig = () => {
-    if (trend === undefined || trend === null) return null
-    if (trend > 0) {
-      return {
-        icon: TrendingUp,
-        color: 'text-green-600',
-        bgColor: 'bg-green-50',
-        prefix: '+',
-      }
+  // Format value
+  const formatValue = (val: number) => {
+    if (format === 'currency') {
+      return new Intl.NumberFormat('sv-SE', { style: 'currency', currency: 'SEK', maximumFractionDigits: 0 }).format(val)
     }
-    if (trend < 0) {
-      return {
-        icon: TrendingDown,
-        color: 'text-red-500',
-        bgColor: 'bg-red-50',
-        prefix: '',
-      }
+    if (format === 'percent') {
+      return `${val}%`
     }
-    return {
-      icon: Minus,
-      color: 'text-muted-foreground',
-      bgColor: 'bg-muted',
-      prefix: '',
-    }
+    return val.toLocaleString('sv-SE')
   }
 
-  const trendConfig = getTrendConfig()
+  // Trend config
+  const isPositive = trend !== undefined && trend > 0
+  const isNegative = trend !== undefined && trend < 0
 
   return (
     <>
-      <Card
+      <div
         className={cn(
-          'p-5 border border-border/60 shadow-sm rounded-xl transition-all',
-          details && 'cursor-pointer hover:border-primary/30 hover:shadow-md'
+          'bg-background rounded-xl p-5 shadow-sm transition-all',
+          details && 'cursor-pointer hover:shadow-md'
         )}
         onClick={() => details && setShowDetails(true)}
       >
         <div className="flex items-start justify-between mb-3">
-          <div className="flex-1">
-            <p className="text-sm font-medium text-foreground">{label}</p>
-            <p className="text-xs text-muted-foreground mt-0.5">{description}</p>
-          </div>
+          <p className="text-sm text-muted-foreground font-medium">{label}</p>
           {Icon && (
-            <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-              <Icon className="h-5 w-5 text-primary" />
+            <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center">
+              <Icon className="h-4.5 w-4.5 text-primary" />
             </div>
           )}
         </div>
@@ -98,8 +80,7 @@ export function KPICard({
         {displayValue === null ? (
           <div className="h-9 w-28 bg-muted animate-pulse rounded mb-2" />
         ) : isZero ? (
-          // Empty state with CTA
-          <div className="mt-2">
+          <div className="mt-1">
             <p className="text-sm text-muted-foreground mb-2">
               {emptyState.message}
             </p>
@@ -118,30 +99,32 @@ export function KPICard({
           </div>
         ) : (
           <>
-            <div className="text-3xl font-bold text-foreground mb-1">
-              {displayValue.toLocaleString('sv-SE')}
+            <div className="text-3xl font-bold text-foreground mb-2">
+              {formatValue(displayValue)}
             </div>
 
-            {trendConfig && (
+            {trend !== undefined && (
               <div className="flex items-center gap-2">
-                <div
+                <span
                   className={cn(
-                    'inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-medium',
-                    trendConfig.bgColor,
-                    trendConfig.color
+                    'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold',
+                    isPositive && 'bg-green-100 text-green-700',
+                    isNegative && 'bg-red-100 text-red-600',
+                    !isPositive && !isNegative && 'bg-muted text-muted-foreground'
                   )}
                 >
-                  <trendConfig.icon className="h-3 w-3" />
-                  {trendConfig.prefix}{Math.abs(trend!)}%
-                </div>
+                  {isPositive && <TrendingUp className="h-3 w-3" />}
+                  {isNegative && <TrendingDown className="h-3 w-3" />}
+                  {isPositive && '+'}
+                  {Math.abs(trend).toFixed(2)}%
+                </span>
                 <span className="text-xs text-muted-foreground">{trendLabel}</span>
               </div>
             )}
           </>
         )}
-      </Card>
+      </div>
 
-      {/* Details Dialog */}
       {details && (
         <Dialog open={showDetails} onOpenChange={setShowDetails}>
           <DialogContent>

@@ -10,7 +10,7 @@ async function takeScreenshots() {
   const desktopPage = await desktopContext.newPage();
   
   // Login
-  await desktopPage.goto('http://localhost:4444/login');
+  await desktopPage.goto('http://127.0.0.1:4444/login');
   await desktopPage.fill('input[type="email"]', 'hq@test.nexavo.se');
   await desktopPage.fill('input[type="password"]', 'Test1234!');
   await desktopPage.click('button[type="submit"]');
@@ -35,7 +35,7 @@ async function takeScreenshots() {
   const mobilePage = await mobileContext.newPage();
   
   // Login on mobile
-  await mobilePage.goto('http://localhost:4444/login');
+  await mobilePage.goto('http://127.0.0.1:4444/login');
   await mobilePage.fill('input[type="email"]', 'hq@test.nexavo.se');
   await mobilePage.fill('input[type="password"]', 'Test1234!');
   await mobilePage.click('button[type="submit"]');
