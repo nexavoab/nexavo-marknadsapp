@@ -189,3 +189,88 @@ export interface AppUser {
   created_at: string
   updated_at: string
 }
+
+// ============ Sprint V2: Extended Schema (WAS-369) ============
+
+export interface Chain {
+  id: string
+  organization_id: string
+  name: string
+  slug: string
+  logo_url?: string
+  settings: Record<string, unknown>
+  created_at: string
+  updated_at: string
+}
+
+export type GenerationStatus = 'pending' | 'processing' | 'completed' | 'failed'
+
+export interface LocalVariant {
+  id: string
+  asset_id: string
+  franchisee_id: string
+  organization_id: string
+  storage_path: string
+  variables_snapshot: Record<string, unknown>
+  generation_status: GenerationStatus
+  created_at: string
+  updated_at: string
+}
+
+export interface AnnualPlan {
+  id: string
+  organization_id: string
+  brand_id: string
+  year: number
+  name: string
+  notes?: string
+  created_at: string
+  updated_at: string
+}
+
+export type SlotStatus = 'planned' | 'scheduled' | 'active' | 'completed' | 'cancelled'
+
+export interface CampaignSlot {
+  id: string
+  annual_plan_id: string
+  organization_id: string
+  campaign_id?: string
+  title: string
+  slot_start: string  // DATE as ISO string
+  slot_end: string    // DATE as ISO string
+  channels: CampaignChannel[]
+  budget_sek?: number
+  status: SlotStatus
+  color?: string
+  created_at: string
+  updated_at: string
+}
+
+export interface AutomationRule {
+  id: string
+  organization_id: string
+  name: string
+  trigger: string
+  trigger_conditions: Record<string, unknown>
+  action: string
+  action_config: Record<string, unknown>
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
+export type WebhookStatus = 'pending' | 'processing' | 'completed' | 'failed' | 'retrying'
+
+export interface WebhookEvent {
+  id: string
+  organization_id: string
+  automation_rule_id?: string
+  event_type: string
+  payload: Record<string, unknown>
+  status: WebhookStatus
+  attempts: number
+  max_attempts: number
+  next_retry_at?: string
+  created_at: string
+  updated_at: string
+}
