@@ -1,15 +1,16 @@
-import { useState } from 'react'
-import { Routes, Route, NavLink, Navigate, useLocation } from 'react-router-dom'
+import { useState, useEffect, useRef } from 'react'
+import { Routes, Route, NavLink, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
 import { useBrandContext } from '@/contexts/BrandContext'
+import { FilterProvider, useFilters, PERIOD_LABELS, type PeriodFilter } from '@/contexts/FilterContext'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import NotificationBell from '@/components/notifications/NotificationBell'
+import { toast } from 'sonner'
 import {
   LayoutDashboard,
   Megaphone,
   Palette,
-  FolderOpen,
   Calendar,
   CalendarRange,
   Users,
@@ -20,7 +21,11 @@ import {
   ArrowRight,
   Search,
   ShieldCheck,
-  Plug
+  Plug,
+  Download,
+  MapPin,
+  ChevronDown,
+  FileDown
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -54,12 +59,11 @@ import AIPipelineTestPage from './AIPipelineTestPage'
 const navItems = [
   { to: '/hq', icon: LayoutDashboard, label: 'Dashboard', end: true },
   { to: '/hq/campaigns', icon: Megaphone, label: 'Kampanjer' },
-  { to: '/hq/brand', icon: Palette, label: 'Varumärke' },
-  { to: '/hq/assets', icon: FolderOpen, label: 'Materialbank', disabled: true, badge: 'Snart' },
+  { to: '/hq/franchisees', icon: Users, label: 'Franchisetagare' },
+  { to: '/hq/compliance', icon: ShieldCheck, label: 'Kampanjräckvidd' },
   { to: '/hq/calendar', icon: Calendar, label: 'Kalender' },
   { to: '/hq/annual-plan', icon: CalendarRange, label: 'Årshjul' },
-  { to: '/hq/franchisees', icon: Users, label: 'Franchisetagare' },
-  { to: '/hq/compliance', icon: ShieldCheck, label: 'Compliance' },
+  { to: '/hq/brand', icon: Palette, label: 'Varumärke' },
   { to: '/hq/integrations', icon: Plug, label: 'Integrationer' },
   { to: '/hq/settings', icon: Settings, label: 'Inställningar' },
 ]
@@ -76,38 +80,23 @@ function Sidebar({ onClose }: { onClose?: () => void }) {
       <Separator className="bg-slate-700" />
       <nav className="flex-1 p-2">
         {navItems.map((item) => (
-          item.disabled ? (
-            <div
-              key={item.to}
-              className="flex items-center gap-3 px-3 py-2 rounded-md text-sm text-slate-500 opacity-50 pointer-events-none"
-            >
-              <item.icon className="h-5 w-5" />
-              {item.label}
-              {item.badge && (
-                <span className="ml-auto text-xs bg-slate-700 text-slate-300 px-2 py-0.5 rounded">
-                  {item.badge}
-                </span>
-              )}
-            </div>
-          ) : (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              end={item.end}
-              onClick={onClose}
-              className={({ isActive }) =>
-                cn(
-                  'flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors',
-                  isActive
-                    ? 'bg-white/10 text-white font-medium'
-                    : 'text-slate-400 hover:bg-white/5 hover:text-white'
-                )
-              }
-            >
-              <item.icon className="h-5 w-5" />
-              {item.label}
-            </NavLink>
-          )
+          <NavLink
+            key={item.to}
+            to={item.to}
+            end={item.end}
+            onClick={onClose}
+            className={({ isActive }) =>
+              cn(
+                'flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors',
+                isActive
+                  ? 'bg-white/10 text-white font-medium'
+                  : 'text-slate-400 hover:bg-white/5 hover:text-white'
+              )
+            }
+          >
+            <item.icon className="h-5 w-5" />
+            {item.label}
+          </NavLink>
         ))}
       </nav>
       <Separator className="bg-slate-700" />
@@ -141,6 +130,230 @@ function PlaceholderPage({ title }: { title: string }) {
   )
 }
 
+// Mock regions - fallback when Supabase not available
+const MOCK_REGIONS = ['Stockholm', 'Göteborg', 'Malmö', 'Uppsala', 'Örebro']
+
+function TopbarFilters() {
+  const { period, region, setPeriod, setRegion, periodLabel, regionLabel } = useFilters()
+  const [periodOpen, setPeriodOpen] = useState(false)
+  const [regionOpen, setRegionOpen] = useState(false)
+  const [exportOpen, setExportOpen] = useState(false)
+  const [commandOpen, setCommandOpen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
+  const navigate = useNavigate()
+  
+  const periodRef = useRef<HTMLDivElement>(null)
+  const regionRef = useRef<HTMLDivElement>(null)
+  const exportRef = useRef<HTMLDivElement>(null)
+  const commandRef = useRef<HTMLDivElement>(null)
+
+  // Close dropdowns on outside click
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (periodRef.current && !periodRef.current.contains(e.target as Node)) setPeriodOpen(false)
+      if (regionRef.current && !regionRef.current.contains(e.target as Node)) setRegionOpen(false)
+      if (exportRef.current && !exportRef.current.contains(e.target as Node)) setExportOpen(false)
+      if (commandRef.current && !commandRef.current.contains(e.target as Node)) setCommandOpen(false)
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  // Keyboard shortcut for command palette (Ctrl+K)
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault()
+        setCommandOpen(true)
+      }
+      if (e.key === 'Escape') {
+        setCommandOpen(false)
+      }
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [])
+
+  // Command palette navigation items
+  const commandItems = [
+    { label: 'Dashboard', path: '/hq', icon: LayoutDashboard },
+    { label: 'Kampanjer', path: '/hq/campaigns', icon: Megaphone },
+    { label: 'Ny kampanj', path: '/hq/campaigns/new', icon: Megaphone },
+    { label: 'Franchisetagare', path: '/hq/franchisees', icon: Users },
+    { label: 'Kalender', path: '/hq/calendar', icon: Calendar },
+    { label: 'Årshjul', path: '/hq/annual-plan', icon: CalendarRange },
+    { label: 'Varumärke', path: '/hq/brand', icon: Palette },
+    { label: 'Inställningar', path: '/hq/settings', icon: Settings },
+  ]
+
+  const filteredCommands = searchQuery
+    ? commandItems.filter(item => 
+        item.label.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    : commandItems
+
+  const handleExport = (type: 'campaigns' | 'franchisees') => {
+    // Placeholder - in real app would trigger CSV download
+    toast.success(`Exporterar ${type === 'campaigns' ? 'kampanjer' : 'franchisetagare'} som CSV...`)
+    setExportOpen(false)
+  }
+
+  const handleCommandSelect = (path: string) => {
+    navigate(path)
+    setCommandOpen(false)
+    setSearchQuery('')
+  }
+
+  return (
+    <>
+      {/* Period Filter */}
+      <div ref={periodRef} className="relative">
+        <button
+          onClick={() => setPeriodOpen(!periodOpen)}
+          className="flex items-center gap-2 px-3 py-1.5 text-sm bg-muted/50 hover:bg-muted rounded-lg border border-border transition-colors"
+        >
+          <Calendar className="h-4 w-4 text-muted-foreground" />
+          <span>{periodLabel}</span>
+          <ChevronDown className={cn('h-3 w-3 text-muted-foreground transition-transform', periodOpen && 'rotate-180')} />
+        </button>
+        {periodOpen && (
+          <div className="absolute top-full left-0 mt-1 w-48 bg-popover border border-border rounded-lg shadow-lg py-1 z-50">
+            {(Object.entries(PERIOD_LABELS) as [PeriodFilter, string][]).map(([key, label]) => (
+              <button
+                key={key}
+                onClick={() => { setPeriod(key); setPeriodOpen(false) }}
+                className={cn(
+                  'w-full px-4 py-2 text-left text-sm hover:bg-muted transition-colors',
+                  period === key && 'bg-muted font-medium'
+                )}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Region Filter */}
+      <div ref={regionRef} className="relative">
+        <button
+          onClick={() => setRegionOpen(!regionOpen)}
+          className="flex items-center gap-2 px-3 py-1.5 text-sm bg-muted/50 hover:bg-muted rounded-lg border border-border transition-colors"
+        >
+          <MapPin className="h-4 w-4 text-muted-foreground" />
+          <span>{regionLabel}</span>
+          <ChevronDown className={cn('h-3 w-3 text-muted-foreground transition-transform', regionOpen && 'rotate-180')} />
+        </button>
+        {regionOpen && (
+          <div className="absolute top-full left-0 mt-1 w-48 bg-popover border border-border rounded-lg shadow-lg py-1 z-50">
+            <button
+              onClick={() => { setRegion('all'); setRegionOpen(false) }}
+              className={cn(
+                'w-full px-4 py-2 text-left text-sm hover:bg-muted transition-colors',
+                region === 'all' && 'bg-muted font-medium'
+              )}
+            >
+              Alla regioner
+            </button>
+            {MOCK_REGIONS.map((r) => (
+              <button
+                key={r}
+                onClick={() => { setRegion(r); setRegionOpen(false) }}
+                className={cn(
+                  'w-full px-4 py-2 text-left text-sm hover:bg-muted transition-colors',
+                  region === r && 'bg-muted font-medium'
+                )}
+              >
+                {r}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Command Palette Trigger */}
+      <div ref={commandRef} className="relative flex-1 max-w-sm">
+        <button
+          onClick={() => setCommandOpen(true)}
+          className="w-full flex items-center gap-2 px-3 py-1.5 text-sm text-muted-foreground bg-muted/50 hover:bg-muted rounded-lg border border-border transition-colors"
+        >
+          <Search className="h-4 w-4" />
+          <span>Sök...</span>
+          <kbd className="ml-auto text-xs bg-background px-1.5 py-0.5 rounded border border-border">⌘K</kbd>
+        </button>
+        
+        {/* Command Palette Modal */}
+        {commandOpen && (
+          <>
+            <div className="fixed inset-0 bg-black/50 z-50" onClick={() => setCommandOpen(false)} />
+            <div className="fixed left-1/2 top-1/4 -translate-x-1/2 w-full max-w-lg bg-popover border border-border rounded-xl shadow-2xl z-50 overflow-hidden">
+              <div className="flex items-center gap-3 px-4 py-3 border-b border-border">
+                <Search className="h-5 w-5 text-muted-foreground" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Sök sidor, kampanjer, franchisetagare..."
+                  className="flex-1 bg-transparent outline-none text-sm"
+                  autoFocus
+                />
+                <kbd className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded">ESC</kbd>
+              </div>
+              <div className="max-h-80 overflow-y-auto py-2">
+                <div className="px-3 py-1.5 text-xs font-medium text-muted-foreground">Navigera</div>
+                {filteredCommands.map((item) => (
+                  <button
+                    key={item.path}
+                    onClick={() => handleCommandSelect(item.path)}
+                    className="w-full flex items-center gap-3 px-4 py-2 text-sm hover:bg-muted transition-colors"
+                  >
+                    <item.icon className="h-4 w-4 text-muted-foreground" />
+                    {item.label}
+                  </button>
+                ))}
+                {filteredCommands.length === 0 && (
+                  <div className="px-4 py-8 text-center text-sm text-muted-foreground">
+                    Inga resultat för "{searchQuery}"
+                  </div>
+                )}
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* Export Button */}
+      <div ref={exportRef} className="relative">
+        <button
+          onClick={() => setExportOpen(!exportOpen)}
+          className="flex items-center justify-center h-8 w-8 rounded-lg hover:bg-muted transition-colors"
+          title="Exportera"
+        >
+          <FileDown className="h-4 w-4 text-muted-foreground" />
+        </button>
+        {exportOpen && (
+          <div className="absolute top-full right-0 mt-1 w-56 bg-popover border border-border rounded-lg shadow-lg py-1 z-50">
+            <button
+              onClick={() => handleExport('campaigns')}
+              className="w-full flex items-center gap-2 px-4 py-2 text-sm hover:bg-muted transition-colors"
+            >
+              <Download className="h-4 w-4 text-muted-foreground" />
+              Exportera kampanjer (CSV)
+            </button>
+            <button
+              onClick={() => handleExport('franchisees')}
+              className="w-full flex items-center gap-2 px-4 py-2 text-sm hover:bg-muted transition-colors"
+            >
+              <Download className="h-4 w-4 text-muted-foreground" />
+              Exportera franchisetagare (CSV)
+            </button>
+          </div>
+        )}
+      </div>
+    </>
+  )
+}
+
 function OnboardingPrompt() {
   return (
     <div className="p-8">
@@ -163,7 +376,7 @@ function OnboardingPrompt() {
   )
 }
 
-export default function HQLayout() {
+function HQLayoutInner() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const { appUser } = useAuth()
   const { hasBrand, loading: brandLoading } = useBrandContext()
@@ -222,20 +435,11 @@ export default function HQLayout() {
       {/* Main content */}
       <div className="lg:ml-64 flex flex-col min-h-screen">
         {/* Topbar */}
-        <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b border-border bg-card px-6">
-          <div className="flex-1">
-            <div className="relative max-w-sm">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <input
-                type="text"
-                placeholder="Sök..."
-                className="w-full rounded-lg border border-input bg-background pl-9 pr-4 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
-              />
-            </div>
-          </div>
+        <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-border bg-card px-4 lg:px-6">
+          <TopbarFilters />
           <div className="flex items-center gap-2">
             <NotificationBell />
-            <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-sm font-semibold">
+            <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-sm font-semibold cursor-pointer hover:opacity-90 transition-opacity">
               {appUser?.email?.[0]?.toUpperCase() ?? 'U'}
             </div>
           </div>
@@ -270,5 +474,13 @@ export default function HQLayout() {
         </main>
       </div>
     </div>
+  )
+}
+
+export default function HQLayout() {
+  return (
+    <FilterProvider>
+      <HQLayoutInner />
+    </FilterProvider>
   )
 }

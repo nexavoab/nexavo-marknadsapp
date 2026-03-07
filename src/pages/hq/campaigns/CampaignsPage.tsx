@@ -15,7 +15,6 @@ import {
   Plus,
   Megaphone,
   Calendar,
-  Loader2,
   AlertCircle,
   MoreHorizontal,
   Pencil,
@@ -146,10 +145,46 @@ export default function CampaignsPage() {
     return result
   }, [campaigns, searchQuery, statusFilter, sortOption])
 
+  // Skeleton card for loading state
+  const SkeletonCard = () => (
+    <div className="bg-card rounded-xl border border-border p-5 animate-pulse">
+      <div className="flex items-start justify-between mb-3">
+        <div className="h-5 w-40 bg-muted rounded" />
+        <div className="h-5 w-16 bg-muted rounded-full" />
+      </div>
+      <div className="space-y-2 mb-4">
+        <div className="h-4 w-full bg-muted/70 rounded" />
+        <div className="h-4 w-3/4 bg-muted/70 rounded" />
+      </div>
+      <div className="flex gap-2 mb-3">
+        <div className="h-6 w-6 bg-muted rounded" />
+        <div className="h-6 w-6 bg-muted rounded" />
+      </div>
+      <div className="h-3 w-24 bg-muted/50 rounded" />
+    </div>
+  )
+
   if (loading) {
     return (
-      <div className="p-8 flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+      <div className="p-4 md:p-8">
+        {/* Header skeleton */}
+        <div className="flex items-center justify-between mb-6">
+          <div className="h-8 w-32 bg-muted rounded animate-pulse" />
+          <div className="h-10 w-32 bg-muted rounded animate-pulse" />
+        </div>
+        {/* Search skeleton */}
+        <div className="h-11 w-full bg-muted rounded-lg mb-4 animate-pulse" />
+        {/* Filters skeleton */}
+        <div className="flex justify-between mb-6">
+          <div className="h-10 w-64 bg-muted rounded-lg animate-pulse" />
+          <div className="h-10 w-28 bg-muted rounded animate-pulse" />
+        </div>
+        {/* Grid skeleton */}
+        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <SkeletonCard key={i} />
+          ))}
+        </div>
       </div>
     )
   }
@@ -194,20 +229,32 @@ export default function CampaignsPage() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           {/* Status filter tabs */}
           <div className="flex gap-1 p-1 bg-muted/50 rounded-lg overflow-x-auto">
-            {STATUS_TABS.map((tab) => (
-              <button
-                key={tab.value}
-                onClick={() => setStatusFilter(tab.value)}
-                className={cn(
-                  'px-3 py-1.5 text-sm font-medium rounded-md transition-colors whitespace-nowrap',
-                  statusFilter === tab.value
-                    ? 'bg-background text-foreground shadow-sm'
-                    : 'text-muted-foreground hover:text-foreground'
-                )}
-              >
-                {tab.label}
-              </button>
-            ))}
+            {STATUS_TABS.map((tab) => {
+              const count = tab.value === 'all'
+                ? campaigns.length
+                : tab.value === 'scheduled'
+                  ? campaigns.filter(c => c.status === 'scheduled' || c.status === 'draft').length
+                  : campaigns.filter(c => c.status === tab.value).length
+              return (
+                <button
+                  key={tab.value}
+                  onClick={() => setStatusFilter(tab.value)}
+                  className={cn(
+                    'px-3 py-1.5 text-sm font-medium rounded-md transition-colors whitespace-nowrap flex items-center gap-1.5',
+                    statusFilter === tab.value
+                      ? 'bg-background text-foreground shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground'
+                  )}
+                >
+                  {tab.label}
+                  {statusFilter === tab.value && count > 0 && (
+                    <span className="inline-flex items-center justify-center min-w-[1.25rem] h-5 text-xs bg-primary text-primary-foreground rounded-full px-1">
+                      {count}
+                    </span>
+                  )}
+                </button>
+              )
+            })}
           </div>
 
           {/* Sort dropdown */}
