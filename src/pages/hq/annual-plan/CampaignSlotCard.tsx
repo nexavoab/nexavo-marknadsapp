@@ -1,8 +1,8 @@
-import type { CampaignSlot } from '@/data/mockAnnualPlan'
-import { STATUS_CONFIG } from '@/data/mockAnnualPlan'
+import type { CampaignSlotCompat } from '@/hooks/useCampaignSlots'
+import { STATUS_CONFIG } from '@/hooks/useCampaignSlots'
 
 interface CampaignSlotCardProps {
-  slot: CampaignSlot
+  slot: CampaignSlotCompat
   onClick: () => void
   /** Width in number of half-month columns */
   colSpan?: number

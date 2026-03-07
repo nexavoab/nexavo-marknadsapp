@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useBrandContext } from '@/contexts/BrandContext'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
+import NotificationBell from '@/components/notifications/NotificationBell'
 import {
   LayoutDashboard,
   Megaphone,
@@ -18,7 +19,6 @@ import {
   X,
   ArrowRight,
   Search,
-  Bell,
   ShieldCheck
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -229,9 +229,7 @@ export default function HQLayout() {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <button className="rounded-lg p-2 hover:bg-accent text-muted-foreground">
-              <Bell className="h-5 w-5" />
-            </button>
+            <NotificationBell />
             <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-sm font-semibold">
               {appUser?.email?.[0]?.toUpperCase() ?? 'U'}
             </div>

@@ -1,10 +1,10 @@
 import { X, Calendar, Radio, CheckCircle2, Users, Wallet, Share2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import type { CampaignSlot } from '@/data/mockAnnualPlan'
-import { STATUS_CONFIG } from '@/data/mockAnnualPlan'
+import type { CampaignSlotCompat } from '@/hooks/useCampaignSlots'
+import { STATUS_CONFIG } from '@/hooks/useCampaignSlots'
 
 interface SlotDetailPanelProps {
-  slot: CampaignSlot
+  slot: CampaignSlotCompat
   onClose: () => void
 }
 
