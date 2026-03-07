@@ -45,10 +45,33 @@
     --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
     --color-sidebar-border: var(--sidebar-border);
     --color-sidebar-ring: var(--sidebar-ring);
+    --color-success: var(--success);
+    --color-success-foreground: var(--success-foreground);
+    --color-warning: var(--warning);
+    --color-warning-foreground: var(--warning-foreground);
+    --color-info: var(--info);
+    --color-info-foreground: var(--info-foreground);
+    --color-brand-blue: var(--brand-blue);
+    --color-brand-purple: var(--brand-purple);
 }
 
 :root {
     --radius: 0.625rem;
+    /* Nexavo design tokens */
+    --shadow-card: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+    --shadow-hover: 0 4px 12px rgba(0,0,0,0.10), 0 2px 4px rgba(0,0,0,0.06);
+    --sidebar-width: 220px;
+    --topbar-height: 56px;
+    --transition-fast: 120ms ease;
+    --transition-base: 200ms ease;
+    --success: oklch(0.50 0.15 145);
+    --success-foreground: oklch(1 0 0);
+    --warning: oklch(0.65 0.17 55);
+    --warning-foreground: oklch(1 0 0);
+    --info: oklch(0.55 0.18 252);
+    --info-foreground: oklch(1 0 0);
+    --brand-blue: oklch(0.60 0.18 252);
+    --brand-purple: oklch(0.60 0.22 295);
     --background: oklch(1 0 0);
     --foreground: oklch(0.145 0 0);
     --card: oklch(1 0 0);
@@ -114,4 +137,29 @@
     --sidebar-accent-foreground: oklch(0.985 0 0);
     --sidebar-border: oklch(1 0 0 / 10%);
     --sidebar-ring: oklch(0.556 0 0);
+}
+
+/* Nexavo utility classes */
+.stat-card {
+    background: var(--card);
+    border-radius: calc(var(--radius) + 4px);
+    border: 1px solid var(--border);
+    padding: 1.25rem;
+    transition: box-shadow 200ms ease;
+    box-shadow: var(--shadow-card);
+}
+.stat-card:hover { box-shadow: var(--shadow-hover); }
+
+.badge-live { display:inline-flex;align-items:center;padding:0.125rem 0.5rem;border-radius:0.375rem;font-size:0.75rem;font-weight:500;background:oklch(0.50 0.15 145 / 0.1);color:oklch(0.50 0.15 145);border:1px solid oklch(0.50 0.15 145 / 0.2); }
+.badge-archive { display:inline-flex;align-items:center;padding:0.125rem 0.5rem;border-radius:0.375rem;font-size:0.75rem;font-weight:500;background:var(--muted);color:var(--muted-foreground); }
+.badge-out { display:inline-flex;align-items:center;padding:0.125rem 0.5rem;border-radius:0.375rem;font-size:0.75rem;font-weight:500;background:oklch(0.577 0.245 27.325 / 0.1);color:oklch(0.577 0.245 27.325);border:1px solid oklch(0.577 0.245 27.325 / 0.2); }
+.badge-low { display:inline-flex;align-items:center;padding:0.125rem 0.5rem;border-radius:0.375rem;font-size:0.75rem;font-weight:500;background:oklch(0.65 0.17 55 / 0.1);color:oklch(0.65 0.17 55);border:1px solid oklch(0.65 0.17 55 / 0.2); }
+
+/* Premium card hover effect */
+.card-hover {
+    transition: box-shadow var(--transition-base), transform var(--transition-base);
+}
+.card-hover:hover {
+    box-shadow: var(--shadow-hover);
+    transform: translateY(-1px);
 }
