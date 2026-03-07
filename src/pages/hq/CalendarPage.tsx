@@ -30,6 +30,7 @@ interface GanttCampaign {
   width: number
   row: number
   franchiseeCount: number
+  budget: number
 }
 
 function getMonthDays(year: number, month: number) {
@@ -165,6 +166,10 @@ export default function CalendarPage() {
       const mockFranchiseeCounts = [12, 8, 24, 6, 18]
       const franchiseeCount = mockFranchiseeCounts[result.length % mockFranchiseeCounts.length]
 
+      // Mock budgets
+      const mockBudgets = [45000, 30000, 75000, 20000, 55000]
+      const budget = mockBudgets[result.length % mockBudgets.length]
+
       result.push({
         id: campaign.id,
         name: campaign.name,
@@ -173,6 +178,7 @@ export default function CalendarPage() {
         width,
         row,
         franchiseeCount,
+        budget,
       })
     })
 
@@ -292,28 +298,53 @@ export default function CalendarPage() {
                   {ganttCampaigns.map((campaign) => {
                     const colors = STATUS_COLORS[campaign.status] || STATUS_COLORS.draft
                     const rowOffset = 24 + campaign.row * 22 // Start below date number
+                    const isCancelled = campaign.status === 'cancelled'
+                    const isActive = campaign.status === 'active'
 
                     return (
-                      <button
+                      <div
                         key={campaign.id}
-                        onClick={() => navigate(`/hq/campaigns/${campaign.id}`)}
-                        className={`
-                          absolute pointer-events-auto
-                          py-0.5 px-1 rounded-sm text-xs font-medium
-                          hover:opacity-80 hover:scale-[1.02] transition-all cursor-pointer
-                          shadow-sm flex items-center gap-1
-                          ${colors.bg} ${colors.text}
-                        `}
+                        className="group/tooltip absolute pointer-events-auto"
                         style={{
                           left: `${campaign.left}%`,
                           width: `${campaign.width}%`,
                           top: `${rowOffset}px`,
                         }}
-                        title={`${campaign.name} (${campaign.status})`}
                       >
-                        <span className="truncate">{campaign.name}</span>
-                        <span className="opacity-70 whitespace-nowrap">· {campaign.franchiseeCount} franchisees</span>
-                      </button>
+                        {/* Tooltip */}
+                        <div className="absolute bottom-full left-0 mb-1 hidden group-hover/tooltip:block z-50 bg-gray-900 text-white text-xs rounded px-2 py-1.5 whitespace-nowrap pointer-events-none shadow-lg">
+                          <div className="font-medium">{campaign.name}</div>
+                          <div className="opacity-80 mt-0.5">
+                            {campaign.franchiseeCount} franchisees · Budget: {campaign.budget.toLocaleString('sv-SE')} kr
+                          </div>
+                          <div className="opacity-70 capitalize">{campaign.status}</div>
+                        </div>
+                        
+                        {/* Gantt bar */}
+                        <button
+                          onClick={() => navigate(`/hq/campaigns/${campaign.id}`)}
+                          className={`
+                            w-full py-0.5 px-1 rounded-sm text-xs font-medium
+                            hover:scale-[1.02] transition-all cursor-pointer
+                            shadow-sm flex items-center gap-1
+                            ${colors.bg} ${colors.text}
+                            ${isCancelled ? 'opacity-50' : 'hover:opacity-90'}
+                          `}
+                        >
+                          {/* Active status indicator - green dot */}
+                          {isActive && (
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-300 inline-block shrink-0" />
+                          )}
+                          {/* Cancelled indicator */}
+                          {isCancelled && (
+                            <span className="shrink-0">❌</span>
+                          )}
+                          <span className={`truncate ${isCancelled ? 'line-through' : ''}`}>
+                            {campaign.name}
+                          </span>
+                          <span className="opacity-70 whitespace-nowrap">· {campaign.franchiseeCount}</span>
+                        </button>
+                      </div>
                     )
                   })}
                 </div>
