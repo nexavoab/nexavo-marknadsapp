@@ -15,7 +15,9 @@ import {
   LogOut,
   Menu,
   X,
-  ArrowRight
+  ArrowRight,
+  Search,
+  Bell
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -80,10 +82,10 @@ function Sidebar({ onClose }: { onClose?: () => void }) {
               onClick={onClose}
               className={({ isActive }) =>
                 cn(
-                  'flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors',
+                  'flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors',
                   isActive
-                    ? 'bg-slate-800 text-white'
-                    : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                    ? 'bg-white/10 text-white font-medium'
+                    : 'text-slate-400 hover:bg-white/5 hover:text-white'
                 )
               }
             >
@@ -148,6 +150,7 @@ function OnboardingPrompt() {
 
 export default function HQLayout() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const { appUser } = useAuth()
   const { hasBrand, loading: brandLoading } = useBrandContext()
   const location = useLocation()
 
@@ -202,7 +205,30 @@ export default function HQLayout() {
       </div>
 
       {/* Main content */}
-      <main id="main-content" className="lg:ml-64">
+      <div className="lg:ml-64 flex flex-col min-h-screen">
+        {/* Topbar */}
+        <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b border-border bg-card px-6">
+          <div className="flex-1">
+            <div className="relative max-w-sm">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <input
+                type="text"
+                placeholder="Sök..."
+                className="w-full rounded-lg border border-input bg-background pl-9 pr-4 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
+              />
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <button className="rounded-lg p-2 hover:bg-accent text-muted-foreground">
+              <Bell className="h-5 w-5" />
+            </button>
+            <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-sm font-semibold">
+              {appUser?.email?.[0]?.toUpperCase() ?? 'U'}
+            </div>
+          </div>
+        </header>
+
+        <main id="main-content" className="flex-1">
         {showOnboarding ? (
           <OnboardingPrompt />
         ) : (
@@ -225,7 +251,8 @@ export default function HQLayout() {
             <Route path="*" element={<Navigate to="/hq" replace />} />
           </Routes>
         )}
-      </main>
+        </main>
+      </div>
     </div>
   )
 }

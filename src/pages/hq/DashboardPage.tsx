@@ -4,8 +4,9 @@ import { useAuth } from '@/contexts/AuthContext'
 import { supabase } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { Palette, Users, Plus } from 'lucide-react'
+import { Palette, Users, Plus, Megaphone, Download, FolderOpen } from 'lucide-react'
 import { toast } from 'sonner'
+import { cn } from '@/lib/utils'
 import type { CampaignStatus } from '@/types'
 
 interface DashboardStats {
@@ -33,20 +34,41 @@ const STATUS_STYLES: Record<CampaignStatus, { color: string; icon: string; label
 function StatCard({ 
   label, 
   value, 
-  loading 
+  loading,
+  trend,
+  trendLabel,
+  icon: Icon
 }: { 
   label: string
   value: number | null
-  loading: boolean 
+  loading: boolean
+  trend?: 'up' | 'down'
+  trendLabel?: string
+  icon?: React.ElementType
 }) {
   return (
-    <Card className="p-6 text-center">
+    <Card className="p-6">
+      <div className="flex items-center justify-between mb-4">
+        <p className="text-sm font-medium text-muted-foreground">{label}</p>
+        {Icon && (
+          <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center">
+            <Icon className="h-5 w-5 text-primary" />
+          </div>
+        )}
+      </div>
       {loading || value === null ? (
-        <div className="h-10 w-16 bg-gray-200 animate-pulse rounded mx-auto mb-2" />
+        <div className="h-8 w-24 bg-gray-200 animate-pulse rounded mb-2" />
       ) : (
-        <div className="text-3xl font-bold text-slate-900 mb-2">{value}</div>
+        <div className="text-3xl font-bold text-foreground">{value}</div>
       )}
-      <div className="text-sm text-gray-500">{label}</div>
+      {trendLabel && (
+        <p className={cn(
+          'text-xs mt-1 flex items-center gap-1',
+          trend === 'up' ? 'text-green-600' : 'text-red-500'
+        )}>
+          {trend === 'up' ? '↑' : '↓'} {trendLabel}
+        </p>
+      )}
     </Card>
   )
 }
@@ -151,45 +173,49 @@ export default function DashboardPage() {
     fetchDashboardData()
   }, [appUser?.organization_id])
 
-  // Greeting based on time
-  const hour = new Date().getHours()
-  const greeting =
-    hour < 10 ? 'God morgon' : hour < 18 ? 'Hej' : 'God kväll'
-  const userName = appUser?.name?.split(' ')[0] || 'där'
-
   return (
     <div className="p-8 space-y-8">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900">
-          {greeting}, {userName} 👋
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-foreground">
+          God morgon, {appUser?.name?.split(' ')[0] ?? 'Wasim'} 👋
         </h1>
-        <p className="text-gray-500 mt-1">
-          Här är en översikt av din marknadsplattform.
+        <p className="text-sm text-muted-foreground mt-1">
+          Här är en översikt av din marknadsapp
         </p>
       </div>
 
       {/* Stats grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <StatCard
           label="Aktiva kampanjer"
           value={stats.activeCampaigns}
           loading={loading}
-        />
-        <StatCard
-          label="Nedladdningar"
-          value={stats.totalDownloads}
-          loading={loading}
+          icon={Megaphone}
+          trend="up"
+          trendLabel="vs förra månaden"
         />
         <StatCard
           label="Franchisetagare"
           value={stats.franchiseeCount}
           loading={loading}
+          icon={Users}
+          trend="up"
+          trendLabel="aktiva"
         />
         <StatCard
-          label="Assets"
+          label="Nedladdningar"
+          value={stats.totalDownloads}
+          loading={loading}
+          icon={Download}
+          trendLabel="senaste 30 dagarna"
+        />
+        <StatCard
+          label="Material"
           value={stats.assetCount}
           loading={loading}
+          icon={FolderOpen}
+          trendLabel="tillgängliga"
         />
       </div>
 

@@ -73,7 +73,7 @@
     --info-foreground: oklch(1 0 0);
     --brand-blue: oklch(0.60 0.18 252);
     --brand-purple: oklch(0.60 0.22 295);
-    --background: oklch(1 0 0);
+    --background: oklch(0.97 0.005 250);
     --foreground: oklch(0.145 0 0);
     --card: oklch(1 0 0);
     --card-foreground: oklch(0.145 0 0);
