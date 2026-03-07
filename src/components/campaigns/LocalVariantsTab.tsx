@@ -143,7 +143,7 @@ export function LocalVariantsTab({ campaignId, assets }: LocalVariantsTabProps) 
           <Button 
             onClick={handleGenerate} 
             disabled={generating || assets.length === 0}
-            className="flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-2 rounded-md font-medium text-sm transition-colors mt-4 mb-2"
+            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md font-medium text-sm transition-colors mt-4 mb-2"
           >
             {generating ? (
               <>

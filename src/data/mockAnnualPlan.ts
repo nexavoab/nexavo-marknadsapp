@@ -10,6 +10,9 @@ export interface CampaignSlot {
   endDate: string   // YYYY-MM-DD
   channel: string
   status: CampaignSlotStatus
+  franchiseeCount?: number
+  budget?: number
+  channels?: string[]
 }
 
 export const mockCampaignSlots: CampaignSlot[] = [
@@ -20,7 +23,10 @@ export const mockCampaignSlots: CampaignSlot[] = [
     startDate: '2026-03-01',
     endDate: '2026-03-31',
     channel: 'Instagram, Facebook',
-    status: 'completed'
+    status: 'completed',
+    franchiseeCount: 24,
+    budget: 48000,
+    channels: ['Meta', 'Google']
   },
   {
     id: '2',
@@ -29,7 +35,10 @@ export const mockCampaignSlots: CampaignSlot[] = [
     startDate: '2026-06-15',
     endDate: '2026-07-15',
     channel: 'Email, SMS',
-    status: 'in_progress'
+    status: 'in_progress',
+    franchiseeCount: 18,
+    budget: 35000,
+    channels: ['Email', 'SMS']
   },
   {
     id: '3',
@@ -38,7 +47,10 @@ export const mockCampaignSlots: CampaignSlot[] = [
     startDate: '2026-11-20',
     endDate: '2026-11-30',
     channel: 'Alla kanaler',
-    status: 'planned'
+    status: 'planned',
+    franchiseeCount: 32,
+    budget: 120000,
+    channels: ['Meta', 'Google', 'TikTok', 'Email']
   },
   {
     id: '4',
@@ -47,7 +59,10 @@ export const mockCampaignSlots: CampaignSlot[] = [
     startDate: '2026-12-01',
     endDate: '2026-12-23',
     channel: 'Instagram, TikTok',
-    status: 'planned'
+    status: 'planned',
+    franchiseeCount: 28,
+    budget: 65000,
+    channels: ['Meta', 'TikTok']
   },
   {
     id: '5',
@@ -56,7 +71,10 @@ export const mockCampaignSlots: CampaignSlot[] = [
     startDate: '2026-04-10',
     endDate: '2026-04-20',
     channel: 'Email',
-    status: 'cancelled'
+    status: 'cancelled',
+    franchiseeCount: 12,
+    budget: 15000,
+    channels: ['Email']
   }
 ]
 

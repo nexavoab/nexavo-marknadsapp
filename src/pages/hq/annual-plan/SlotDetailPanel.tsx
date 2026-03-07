@@ -1,4 +1,4 @@
-import { X, Calendar, Radio, CheckCircle2 } from 'lucide-react'
+import { X, Calendar, Radio, CheckCircle2, Users, Wallet, Share2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import type { CampaignSlot } from '@/data/mockAnnualPlan'
 import { STATUS_CONFIG } from '@/data/mockAnnualPlan'
@@ -74,6 +74,33 @@ export default function SlotDetailPanel({ slot, onClose }: SlotDetailPanelProps)
             <div className="flex items-center gap-2 text-foreground">
               <Radio className="h-4 w-4 text-muted-foreground" />
               <span>{slot.channel}</span>
+            </div>
+          </div>
+
+          {/* Franchisees */}
+          <div>
+            <h4 className="text-sm font-medium text-muted-foreground mb-1">Franchisees</h4>
+            <div className="flex items-center gap-2 text-foreground">
+              <Users className="h-4 w-4 text-muted-foreground" />
+              <span>{slot.franchiseeCount ?? 0} aktiva</span>
+            </div>
+          </div>
+
+          {/* Budget */}
+          <div>
+            <h4 className="text-sm font-medium text-muted-foreground mb-1">Budget</h4>
+            <div className="flex items-center gap-2 text-foreground">
+              <Wallet className="h-4 w-4 text-muted-foreground" />
+              <span>{slot.budget ? `${slot.budget.toLocaleString('sv-SE')} kr` : '–'}</span>
+            </div>
+          </div>
+
+          {/* Channels */}
+          <div>
+            <h4 className="text-sm font-medium text-muted-foreground mb-1">Kanaler</h4>
+            <div className="flex items-center gap-2 text-foreground">
+              <Share2 className="h-4 w-4 text-muted-foreground" />
+              <span>{slot.channels?.join(', ') || slot.channel}</span>
             </div>
           </div>
         </div>
