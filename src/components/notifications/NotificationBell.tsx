@@ -51,7 +51,7 @@ export default function NotificationBell({ className }: NotificationBellProps) {
     async function load() {
       setLoading(true);
       const [notifResult, count] = await Promise.all([
-        fetchNotifications(5),
+        fetchNotifications(10), // Fetch more to match badge count
         fetchUnreadCount()
       ]);
       setNotifications(notifResult.notifications);
@@ -162,6 +162,19 @@ export default function NotificationBell({ className }: NotificationBellProps) {
                         <p className="text-xs text-muted-foreground mt-1">
                           {formatTimeAgo(notification.created_at)}
                         </p>
+                        {/* Action button for campaign approval notifications */}
+                        {notification.type === 'campaign_ready_for_approval' && (
+                          <button
+                            className="mt-1 text-xs bg-primary text-primary-foreground rounded px-2 py-0.5 hover:opacity-90"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleMarkAsRead(notification.id);
+                              window.location.href = '/portal/campaigns';
+                            }}
+                          >
+                            Granska nu →
+                          </button>
+                        )}
                       </div>
                       {!notification.read_at && (
                         <div className="flex-shrink-0">
@@ -177,13 +190,16 @@ export default function NotificationBell({ className }: NotificationBellProps) {
 
           {/* Footer */}
           {notifications.length > 0 && (
-            <div className="px-4 py-2 border-t border-border bg-muted/50">
+            <div className="border-t border-border px-3 py-2 flex justify-between items-center">
               <button
-                onClick={() => setIsOpen(false)}
-                className="text-xs text-primary hover:underline w-full text-center"
+                onClick={handleMarkAllAsRead}
+                className="text-xs text-muted-foreground hover:text-foreground"
               >
-                Se alla notifikationer
+                Markera alla som lästa
               </button>
+              <a href="/hq/notifications" className="text-xs text-primary hover:underline">
+                Se alla →
+              </a>
             </div>
           )}
         </div>

@@ -311,20 +311,13 @@ export default function CalendarPage() {
                           top: `${rowOffset}px`,
                         }}
                       >
-                        {/* Tooltip */}
-                        <div className="absolute bottom-full left-0 mb-1 hidden group-hover/tooltip:block z-50 bg-gray-900 text-white text-xs rounded px-2 py-1.5 whitespace-nowrap pointer-events-none shadow-lg">
-                          <div className="font-medium">{campaign.name}</div>
-                          <div className="opacity-80 mt-0.5">
-                            {campaign.franchiseeCount} franchisees · Budget: {campaign.budget.toLocaleString('sv-SE')} kr
-                          </div>
-                          <div className="opacity-70 capitalize">{campaign.status}</div>
-                        </div>
-                        
-                        {/* Gantt bar */}
+
+                        {/* Gantt bar - all info visible without hover */}
                         <button
                           onClick={() => navigate(`/hq/campaigns/${campaign.id}`)}
+                          title={`${campaign.name} · Status: ${campaign.status}`}
                           className={`
-                            w-full py-0.5 px-1 rounded-sm text-xs font-medium
+                            w-full py-0.5 px-2 rounded-sm text-xs font-medium
                             hover:scale-[1.02] transition-all cursor-pointer
                             shadow-sm flex items-center gap-1
                             ${colors.bg} ${colors.text}
@@ -333,16 +326,17 @@ export default function CalendarPage() {
                         >
                           {/* Active status indicator - green dot */}
                           {isActive && (
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-300 inline-block shrink-0" />
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-300 flex-shrink-0" />
                           )}
                           {/* Cancelled indicator */}
                           {isCancelled && (
-                            <span className="shrink-0">❌</span>
+                            <span className="flex-shrink-0">❌</span>
                           )}
                           <span className={`truncate ${isCancelled ? 'line-through' : ''}`}>
                             {campaign.name}
                           </span>
-                          <span className="opacity-70 whitespace-nowrap">· {campaign.franchiseeCount}</span>
+                          <span className="opacity-75 whitespace-nowrap">· {campaign.franchiseeCount}st</span>
+                          <span className="opacity-60 whitespace-nowrap hidden sm:inline">· {campaign.budget.toLocaleString('sv-SE')} kr</span>
                         </button>
                       </div>
                     )

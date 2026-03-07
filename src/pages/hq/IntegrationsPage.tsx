@@ -90,6 +90,7 @@ function IntegrationCard({
   onDisconnect,
   onRefresh,
   loading,
+  stepNumber,
 }: {
   provider: IntegrationProvider
   integration?: Integration
@@ -97,6 +98,7 @@ function IntegrationCard({
   onDisconnect: () => void
   onRefresh: () => void
   loading: boolean
+  stepNumber: number
 }) {
   const isConnected = integration?.status === 'active'
   const isExpired = integration?.status === 'expired'
@@ -107,6 +109,10 @@ function IntegrationCard({
       'relative overflow-hidden transition-all',
       provider.comingSoon && 'opacity-60'
     )}>
+      {/* Step number indicator */}
+      <div className="absolute -top-2 -left-2 w-6 h-6 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center font-bold z-10">
+        {stepNumber}
+      </div>
       {provider.comingSoon && (
         <div className="absolute top-3 right-3">
           <Badge variant="secondary">Kommer snart</Badge>
@@ -178,11 +184,18 @@ function IntegrationCard({
               >
                 {isExpired ? 'Förnya' : 'Koppla från'}
               </Button>
+            ) : provider.comingSoon ? (
+              <button
+                className="text-xs text-primary hover:underline"
+                onClick={() => alert('Du är anmäld till väntelistan!')}
+              >
+                Meddela mig när det är klart →
+              </button>
             ) : (
               <Button
                 size="sm"
                 onClick={onConnect}
-                disabled={loading || !provider.available || provider.comingSoon}
+                disabled={loading || !provider.available}
               >
                 <ExternalLink className="h-4 w-4 mr-2" />
                 Anslut
@@ -401,6 +414,20 @@ export default function IntegrationsPage() {
         </Alert>
       )}
 
+      {/* Onboarding banner - show when no providers are connected */}
+      {!loading && integrations.filter(i => i.status === 'active').length === 0 && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 flex items-start gap-3">
+          <div className="text-blue-500 text-xl">💡</div>
+          <div>
+            <p className="text-sm font-medium text-blue-900">Anslut Meta Ads för att komma igång</p>
+            <p className="text-sm text-blue-700 mt-1">
+              Börja med Meta Ads — det täcker Facebook och Instagram och når direkt alla dina franchisetagare.
+              Anslutningen tar ca 2 minuter.
+            </p>
+          </div>
+        </div>
+      )}
+
       {loading ? (
         <div className="grid gap-4 md:grid-cols-2">
           {[1, 2, 3, 4].map((i) => (
@@ -420,7 +447,7 @@ export default function IntegrationsPage() {
         </div>
       ) : (
         <div className="grid gap-4 md:grid-cols-2">
-          {providers.map((provider) => {
+          {providers.map((provider, index) => {
             const integration = integrations.find((i) => i.provider === provider.id)
             return (
               <IntegrationCard
@@ -431,6 +458,7 @@ export default function IntegrationsPage() {
                 onDisconnect={() => handleDisconnect(provider.id)}
                 onRefresh={() => handleRefresh(provider.id)}
                 loading={actionLoading === provider.id}
+                stepNumber={index + 1}
               />
             )
           })}
