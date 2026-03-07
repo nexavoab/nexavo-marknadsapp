@@ -3,12 +3,13 @@
  * Visar alla kampanjer med möjlighet att skapa nya
  */
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useCampaigns } from '@/hooks/useCampaigns'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
+import { toast } from 'sonner'
 import type { Campaign, CampaignStatus, CampaignChannel } from '@/types'
 import {
   Plus,
@@ -16,6 +17,10 @@ import {
   Calendar,
   Loader2,
   AlertCircle,
+  MoreHorizontal,
+  Pencil,
+  Copy,
+  Archive,
 } from 'lucide-react'
 
 const STATUS_STYLES: Record<CampaignStatus, { label: string; className: string }> = {
@@ -55,6 +60,14 @@ export default function CampaignsPage() {
     } finally {
       setLoading(false)
     }
+  }
+
+  const handleDuplicate = (campaign: Campaign) => {
+    toast.success(`Kampanj "${campaign.name}" duplicerad`)
+  }
+
+  const handleArchive = (campaign: Campaign) => {
+    toast.success(`Kampanj "${campaign.name}" arkiverad`)
   }
 
   if (loading) {
@@ -111,6 +124,9 @@ export default function CampaignsPage() {
               key={campaign.id}
               campaign={campaign}
               onClick={() => navigate(`/hq/campaigns/${campaign.id}`)}
+              onEdit={() => navigate(`/hq/campaigns/${campaign.id}/edit`)}
+              onDuplicate={() => handleDuplicate(campaign)}
+              onArchive={() => handleArchive(campaign)}
             />
           ))}
         </div>
@@ -124,10 +140,29 @@ export default function CampaignsPage() {
 interface CampaignCardProps {
   campaign: Campaign
   onClick: () => void
+  onEdit: () => void
+  onDuplicate: () => void
+  onArchive: () => void
 }
 
-function CampaignCard({ campaign, onClick }: CampaignCardProps) {
+function CampaignCard({ campaign, onClick, onEdit, onDuplicate, onArchive }: CampaignCardProps) {
   const statusConfig = STATUS_STYLES[campaign.status]
+  const [menuOpen, setMenuOpen] = useState(false)
+  const menuRef = useRef<HTMLDivElement>(null)
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setMenuOpen(false)
+      }
+    }
+
+    if (menuOpen) {
+      document.addEventListener('mousedown', handleClickOutside)
+      return () => document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [menuOpen])
 
   const formatDate = (dateStr?: string) => {
     if (!dateStr) return null
@@ -137,13 +172,67 @@ function CampaignCard({ campaign, onClick }: CampaignCardProps) {
     })
   }
 
+  const handleMenuClick = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    setMenuOpen(!menuOpen)
+  }
+
+  const handleAction = (action: () => void) => (e: React.MouseEvent) => {
+    e.stopPropagation()
+    setMenuOpen(false)
+    action()
+  }
+
   return (
-    <button
+    <div
       onClick={onClick}
-      className="text-left bg-card rounded-xl border border-border p-5 hover:shadow-lg hover:border-primary/50 transition-all group"
+      className="relative text-left bg-card rounded-xl border border-border p-5 hover:shadow-lg hover:border-primary/50 transition-all group cursor-pointer"
     >
+      {/* Quick actions button */}
+      <div ref={menuRef} className="absolute top-3 right-3 z-10">
+        <button
+          onClick={handleMenuClick}
+          className={cn(
+            'p-1.5 rounded-md transition-all',
+            'opacity-0 group-hover:opacity-100',
+            'hover:bg-muted',
+            menuOpen && 'opacity-100 bg-muted'
+          )}
+          aria-label="Kampanjåtgärder"
+        >
+          <MoreHorizontal className="w-5 h-5 text-muted-foreground" />
+        </button>
+
+        {/* Dropdown menu */}
+        {menuOpen && (
+          <div className="absolute right-0 top-full mt-1 w-44 bg-popover border border-border rounded-lg shadow-lg py-1 z-20">
+            <button
+              onClick={handleAction(onEdit)}
+              className="w-full flex items-center gap-2 px-3 py-2 text-sm text-left hover:bg-muted transition-colors"
+            >
+              <Pencil className="w-4 h-4 text-muted-foreground" />
+              Redigera
+            </button>
+            <button
+              onClick={handleAction(onDuplicate)}
+              className="w-full flex items-center gap-2 px-3 py-2 text-sm text-left hover:bg-muted transition-colors"
+            >
+              <Copy className="w-4 h-4 text-muted-foreground" />
+              Duplicera
+            </button>
+            <button
+              onClick={handleAction(onArchive)}
+              className="w-full flex items-center gap-2 px-3 py-2 text-sm text-left hover:bg-muted transition-colors text-orange-600"
+            >
+              <Archive className="w-4 h-4" />
+              Arkivera
+            </button>
+          </div>
+        )}
+      </div>
+
       {/* Header */}
-      <div className="flex items-start justify-between mb-3">
+      <div className="flex items-start justify-between mb-3 pr-8">
         <h3 className="font-semibold text-lg group-hover:text-primary transition-colors">
           {campaign.name}
         </h3>
@@ -184,6 +273,6 @@ function CampaignCard({ campaign, onClick }: CampaignCardProps) {
           </span>
         </div>
       )}
-    </button>
+    </div>
   )
 }

@@ -319,7 +319,7 @@ export default function BrandSetupPage() {
                       </button>
                     </div>
                   ) : (
-                    <label className="flex flex-col items-center justify-center w-32 h-20 border-2 border-dashed rounded-lg cursor-pointer hover:bg-muted/50">
+                    <label className="flex flex-col items-center justify-center w-32 h-20 border border-border shadow-sm rounded-lg cursor-pointer hover:bg-muted/50">
                       <Upload className="w-6 h-6 text-muted-foreground" />
                       <span className="text-xs text-muted-foreground mt-1">
                         {uploadingLogo ? 'Laddar...' : 'Välj fil'}
@@ -355,7 +355,7 @@ export default function BrandSetupPage() {
                       </button>
                     </div>
                   ) : (
-                    <label className="flex flex-col items-center justify-center w-32 h-20 border-2 border-dashed rounded-lg cursor-pointer hover:bg-muted/50">
+                    <label className="flex flex-col items-center justify-center w-32 h-20 border border-border shadow-sm rounded-lg cursor-pointer hover:bg-muted/50">
                       <Upload className="w-6 h-6 text-muted-foreground" />
                       <span className="text-xs text-muted-foreground mt-1">
                         {uploadingDarkLogo ? 'Laddar...' : 'Välj fil'}
