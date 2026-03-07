@@ -41,6 +41,9 @@ import SettingsPage from './SettingsPage'
 // Annual plan
 import AnnualPlanPage from './annual-plan/AnnualPlanPage'
 
+// Compliance
+import CompliancePage from './CompliancePage'
+
 // Internal test pages (no nav links)
 import AIPipelineTestPage from './AIPipelineTestPage'
 
@@ -52,6 +55,7 @@ const navItems = [
   { to: '/hq/calendar', icon: Calendar, label: 'Kalender' },
   { to: '/hq/annual-plan', icon: CalendarRange, label: 'Årshjul' },
   { to: '/hq/franchisees', icon: Users, label: 'Franchisetagare' },
+  { to: '/hq/compliance', icon: ShieldCheck, label: 'Compliance' },
   { to: '/hq/settings', icon: Settings, label: 'Inställningar' },
 ]
 
@@ -252,6 +256,7 @@ export default function HQLayout() {
             <Route path="calendar" element={<CalendarPage />} />
             <Route path="annual-plan" element={<AnnualPlanPage />} />
             <Route path="franchisees" element={<FranchiseesPage />} />
+            <Route path="compliance" element={<CompliancePage />} />
             <Route path="settings" element={<SettingsPage />} />
             {/* Internal test pages - no nav links */}
             <Route path="ai-test" element={<AIPipelineTestPage />} />

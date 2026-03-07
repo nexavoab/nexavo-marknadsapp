@@ -9,7 +9,6 @@ import { cn } from '@/lib/utils'
 import {
   mockComplianceData,
   type ComplianceStatus,
-  type ComplianceCampaign,
 } from '@/data/mockCompliance'
 import {
   CheckCircle2,
