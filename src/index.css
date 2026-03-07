@@ -1,3 +1,4 @@
+@import "tailwindcss/theme" layer(theme);
 @tailwind base;
 
 @plugin "tailwindcss-animate";
