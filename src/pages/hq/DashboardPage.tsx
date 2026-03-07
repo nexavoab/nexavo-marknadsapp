@@ -4,17 +4,57 @@ import { useAuth } from '@/contexts/AuthContext'
 import { supabase } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { Palette, Users, Plus, Megaphone, Download, FolderOpen, Inbox, AlertCircle, CheckCircle2, ArrowRight } from 'lucide-react'
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
+import {
+  Megaphone,
+  Users,
+  Download,
+  FolderOpen,
+  Inbox,
+  AlertCircle,
+  CheckCircle2,
+  ArrowRight,
+  Plus,
+} from 'lucide-react'
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  PieChart,
+  Pie,
+  Cell,
+} from 'recharts'
 import { toast } from 'sonner'
-import { cn } from '@/lib/utils'
 import type { CampaignStatus } from '@/types'
+
+// Dashboard components
+import {
+  KPICard,
+  WidgetCard,
+  RankedList,
+  OnboardingChecklist,
+  useOnboardingState,
+  createDefaultOnboardingSteps,
+  QuickActions,
+  createContextualQuickActions,
+} from '@/components/dashboard'
 
 interface DashboardStats {
   activeCampaigns: number | null
   totalDownloads: number | null
   franchiseeCount: number | null
   assetCount: number | null
+  // Trends (percentage change vs last month)
+  campaignsTrend: number
+  downloadsTrend: number
+  franchiseeTrend: number
+  assetTrend: number
 }
 
 interface RecentCampaign {
@@ -29,7 +69,24 @@ interface AttentionItems {
   inactiveFranchisees: number
 }
 
-const STATUS_STYLES: Record<CampaignStatus, { color: string; icon: string; label: string }> = {
+interface FranchiseeActivity {
+  id: string
+  name: string
+  campaignCount: number
+  activityScore: number
+}
+
+interface PendingAction {
+  id: string
+  name: string
+  type: 'campaign' | 'asset'
+  daysWaiting: number
+}
+
+const STATUS_STYLES: Record<
+  CampaignStatus,
+  { color: string; icon: string; label: string }
+> = {
   active: { color: 'text-green-600', icon: '🟢', label: 'aktiv' },
   draft: { color: 'text-yellow-600', icon: '🟡', label: 'utkast' },
   scheduled: { color: 'text-blue-600', icon: '🔵', label: 'schemalagd' },
@@ -37,51 +94,31 @@ const STATUS_STYLES: Record<CampaignStatus, { color: string; icon: string; label
   archived: { color: 'text-muted-foreground', icon: '📦', label: 'arkiverad' },
 }
 
-function StatCard({ 
-  label, 
-  value, 
-  loading,
-  trend,
-  trendLabel,
-  icon: Icon
-}: { 
-  label: string
-  value: number | null
-  loading: boolean
-  trend?: 'up' | 'down'
-  trendLabel?: string
-  icon?: React.ElementType
-}) {
-  // Show 0 if value is null after loading completes
-  const displayValue = loading ? null : (value ?? 0)
-  
-  return (
-    <Card className="p-5 border border-border/60 shadow-sm rounded-xl">
-      <div className="flex items-center justify-between mb-4">
-        <p className="text-sm font-medium text-muted-foreground">{label}</p>
-        {Icon && (
-          <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center">
-            <Icon className="h-5 w-5 text-primary" />
-          </div>
-        )}
-      </div>
-      {displayValue === null ? (
-        <div className="h-8 w-24 bg-muted animate-pulse rounded mb-2" />
-      ) : (
-        <div className="text-3xl font-bold text-foreground">{displayValue}</div>
-      )}
-      {trendLabel && (
-        <p className={cn(
-          'text-xs mt-1 flex items-center gap-1',
-          trend === 'up' ? 'text-green-600' : 'text-red-500'
-        )}>
-          {trend === 'up' ? '↑' : '↓'} {trendLabel}
-        </p>
-      )}
-    </Card>
-  )
-}
+// Mock data for demo purposes (will be replaced with real data)
+const MOCK_ACTIVITY_DATA = [
+  { month: 'Sep', downloads: 12, prevDownloads: 8, campaigns: 2 },
+  { month: 'Okt', downloads: 28, prevDownloads: 15, campaigns: 3 },
+  { month: 'Nov', downloads: 19, prevDownloads: 22, campaigns: 2 },
+  { month: 'Dec', downloads: 35, prevDownloads: 28, campaigns: 4 },
+  { month: 'Jan', downloads: 22, prevDownloads: 18, campaigns: 3 },
+  { month: 'Feb', downloads: 41, prevDownloads: 35, campaigns: 5 },
+  { month: 'Mar', downloads: 38, prevDownloads: 30, campaigns: 4 },
+]
 
+const MOCK_FRANCHISEE_ACTIVITY: FranchiseeActivity[] = [
+  { id: '1', name: 'Stockholm City', campaignCount: 12, activityScore: 95 },
+  { id: '2', name: 'Göteborg Centrum', campaignCount: 8, activityScore: 78 },
+  { id: '3', name: 'Malmö Syd', campaignCount: 6, activityScore: 65 },
+  { id: '4', name: 'Uppsala Nord', campaignCount: 4, activityScore: 52 },
+  { id: '5', name: 'Örebro Väst', campaignCount: 2, activityScore: 35 },
+]
+
+const MOCK_PENDING_ACTIONS: PendingAction[] = [
+  { id: '1', name: 'Sommarkampanj 2025', type: 'campaign', daysWaiting: 3 },
+  { id: '2', name: 'Höstkollektion', type: 'campaign', daysWaiting: 1 },
+]
+
+// Attention Section Component
 function AttentionSection({
   pendingApproval,
   inactiveFranchisees,
@@ -104,7 +141,9 @@ function AttentionSection({
           </div>
           <div>
             <h3 className="font-medium text-green-900">Allt ser bra ut! ✓</h3>
-            <p className="text-sm text-green-700">Inga åtgärder krävs just nu</p>
+            <p className="text-sm text-green-700">
+              Inga åtgärder krävs just nu
+            </p>
           </div>
         </div>
       </Card>
@@ -117,7 +156,7 @@ function AttentionSection({
         <div className="h-9 w-9 rounded-full bg-amber-100 flex items-center justify-center">
           <AlertCircle className="h-5 w-5 text-amber-600" />
         </div>
-        <h3 className="font-medium text-amber-900">Behöver uppmärksamhet</h3>
+        <h3 className="font-medium text-amber-900">Behöver din uppmärksamhet</h3>
       </div>
       <div className="space-y-2">
         {pendingApproval > 0 && (
@@ -128,7 +167,8 @@ function AttentionSection({
             <div className="flex items-center gap-3">
               <Megaphone className="h-4 w-4 text-amber-600" />
               <span className="text-sm text-foreground">
-                <strong>{pendingApproval}</strong> kampanj{pendingApproval !== 1 ? 'er' : ''} väntar på godkännande
+                <strong>{pendingApproval}</strong> kampanj
+                {pendingApproval !== 1 ? 'er' : ''} väntar på godkännande
               </span>
             </div>
             <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
@@ -142,7 +182,8 @@ function AttentionSection({
             <div className="flex items-center gap-3">
               <Users className="h-4 w-4 text-amber-600" />
               <span className="text-sm text-foreground">
-                <strong>{inactiveFranchisees}</strong> franchisetagare ej aktiverad{inactiveFranchisees !== 1 ? 'e' : ''}
+                <strong>{inactiveFranchisees}</strong> franchisetagare har ej
+                aktiverat kampanj
               </span>
             </div>
             <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
@@ -150,6 +191,37 @@ function AttentionSection({
         )}
       </div>
     </Card>
+  )
+}
+
+// Empty State Component
+function EmptyState({
+  icon: Icon,
+  title,
+  description,
+  ctaLabel,
+  onAction,
+}: {
+  icon: React.ElementType
+  title: string
+  description: string
+  ctaLabel: string
+  onAction: () => void
+}) {
+  return (
+    <div className="py-8 text-center flex flex-col items-center gap-3">
+      <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center">
+        <Icon className="h-6 w-6 text-muted-foreground" />
+      </div>
+      <div>
+        <p className="font-medium text-foreground">{title}</p>
+        <p className="text-sm text-muted-foreground mt-1">{description}</p>
+      </div>
+      <Button onClick={onAction} className="mt-2">
+        <Plus className="h-4 w-4 mr-2" />
+        {ctaLabel}
+      </Button>
+    </div>
   )
 }
 
@@ -161,6 +233,10 @@ export default function DashboardPage() {
     totalDownloads: null,
     franchiseeCount: null,
     assetCount: null,
+    campaignsTrend: 0,
+    downloadsTrend: 0,
+    franchiseeTrend: 0,
+    assetTrend: 0,
   })
   const [recentCampaigns, setRecentCampaigns] = useState<RecentCampaign[]>([])
   const [attentionItems, setAttentionItems] = useState<AttentionItems>({
@@ -168,6 +244,33 @@ export default function DashboardPage() {
     inactiveFranchisees: 0,
   })
   const [loading, setLoading] = useState(true)
+
+  // Onboarding state
+  const { completedSteps, isDismissed, dismiss } =
+    useOnboardingState()
+
+  // Context for quick actions and onboarding
+  const context = {
+    hasFranchisees: (stats.franchiseeCount ?? 0) > 0,
+    hasCampaigns: (stats.activeCampaigns ?? 0) > 0,
+    hasBrand: true, // TODO: Check from organization data
+    hasIntegration: false, // TODO: Check from integrations
+  }
+
+  // Quick actions
+  const quickActions = createContextualQuickActions(navigate, context)
+
+  // Onboarding steps
+  const onboardingSteps = createDefaultOnboardingSteps(
+    completedSteps,
+    {
+      onInviteFranchisee: () => navigate('/hq/franchisees'),
+      onCreateCampaign: () => navigate('/hq/campaigns/new'),
+      onCompleteBrand: () => navigate('/hq/brand'),
+      onConnectIntegration: () => navigate('/hq/settings'),
+    },
+    context
+  )
 
   // Max 1.5s skeleton loading
   useEffect(() => {
@@ -236,16 +339,26 @@ export default function DashboardPage() {
         ])
 
         // Calculate total downloads
-        const totalDownloads = downloadsRes.data?.reduce(
-          (sum, a) => sum + (a.download_count || 0),
-          0
-        ) ?? 0
+        const totalDownloads =
+          downloadsRes.data?.reduce(
+            (sum, a) => sum + (a.download_count || 0),
+            0
+          ) ?? 0
+
+        // Calculate mock trends (in real app, compare with previous period)
+        const mockTrends = {
+          campaignsTrend: 12,
+          downloadsTrend: 23,
+          franchiseeTrend: 8,
+          assetTrend: 15,
+        }
 
         setStats({
           activeCampaigns: activeCampaignsRes.count ?? 0,
           totalDownloads,
           franchiseeCount: franchiseesRes.count ?? 0,
           assetCount: assetsRes.count ?? 0,
+          ...mockTrends,
         })
 
         // Set attention items
@@ -261,12 +374,15 @@ export default function DashboardPage() {
             .select('campaign_id')
             .eq('organization_id', appUser.organization_id)
 
-          const countMap = (allAssets ?? []).reduce((acc, a) => {
-            if (a.campaign_id) acc[a.campaign_id] = (acc[a.campaign_id] || 0) + 1
-            return acc
-          }, {} as Record<string, number>)
+          const countMap = (allAssets ?? []).reduce(
+            (acc, a) => {
+              if (a.campaign_id) acc[a.campaign_id] = (acc[a.campaign_id] || 0) + 1
+              return acc
+            },
+            {} as Record<string, number>
+          )
 
-          const campaignsWithCounts = campaignsRes.data.map(c => ({
+          const campaignsWithCounts = campaignsRes.data.map((c) => ({
             id: c.id,
             name: c.name,
             status: c.status as CampaignStatus,
@@ -285,10 +401,16 @@ export default function DashboardPage() {
     fetchDashboardData()
   }, [appUser?.organization_id])
 
+  // Export handlers
+  const handleExportCSV = (widgetName: string) => {
+    toast.info(`Exporterar ${widgetName} som CSV...`)
+    // TODO: Implement CSV export
+  }
+
   return (
-    <div className="p-4 md:p-8 space-y-6 md:space-y-8">
+    <div className="p-4 md:p-6 lg:p-8 space-y-6">
       {/* Header */}
-      <div className="mb-6">
+      <div className="mb-2">
         <h1 className="text-2xl font-bold text-foreground">
           God morgon, {appUser?.name?.split(' ')[0] ?? 'Wasim'} 👋
         </h1>
@@ -297,7 +419,7 @@ export default function DashboardPage() {
         </p>
       </div>
 
-      {/* Attention Section */}
+      {/* 1. Attention Section (needs action) */}
       {!loading && (
         <AttentionSection
           pendingApproval={attentionItems.pendingApproval}
@@ -307,116 +429,192 @@ export default function DashboardPage() {
         />
       )}
 
-      {/* Stats grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <StatCard
+      {/* Quick Actions - right under attention */}
+      {!loading && <QuickActions actions={quickActions} className="mt-4" />}
+
+      {/* Onboarding Checklist (for new users) */}
+      {!loading && !isDismissed && (
+        <OnboardingChecklist steps={onboardingSteps} onDismiss={dismiss} />
+      )}
+
+      {/* 2. KPI Row - clear reading order */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <KPICard
           label="Aktiva kampanjer"
+          description="Pågående kampanjer just nu"
           value={stats.activeCampaigns}
           loading={loading}
           icon={Megaphone}
-          trend="up"
-          trendLabel="vs förra månaden"
+          trend={stats.campaignsTrend}
+          trendLabel="vs föregående månad"
+          emptyState={{
+            message: 'Inga aktiva kampanjer',
+            ctaLabel: 'Skapa nu',
+            onAction: () => navigate('/hq/campaigns/new'),
+          }}
+          details={{
+            title: 'Kampanjöversikt',
+            content: (
+              <div className="space-y-2 text-sm">
+                <p>Aktiva: {stats.activeCampaigns ?? 0}</p>
+                <p>Utkast: {attentionItems.pendingApproval}</p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => navigate('/hq/campaigns')}
+                >
+                  Se alla kampanjer
+                </Button>
+              </div>
+            ),
+          }}
         />
-        <StatCard
+        <KPICard
           label="Franchisetagare"
+          description="Aktiva partners i nätverket"
           value={stats.franchiseeCount}
           loading={loading}
           icon={Users}
-          trend="up"
-          trendLabel="aktiva"
+          trend={stats.franchiseeTrend}
+          trendLabel="vs föregående månad"
+          emptyState={{
+            message: 'Inga franchisetagare ännu',
+            ctaLabel: 'Bjud in',
+            onAction: () => navigate('/hq/franchisees'),
+          }}
         />
-        <StatCard
+        <KPICard
           label="Nedladdningar"
+          description="Totalt antal materialuttag"
           value={stats.totalDownloads}
           loading={loading}
           icon={Download}
-          trendLabel="senaste 30 dagarna"
+          trend={stats.downloadsTrend}
+          trendLabel="vs föregående månad"
         />
-        <StatCard
+        <KPICard
           label="Material"
+          description="Tillgängliga i materialbanken"
           value={stats.assetCount}
           loading={loading}
           icon={FolderOpen}
-          trendLabel="tillgängliga"
+          trend={stats.assetTrend}
+          trendLabel="vs föregående månad"
+          emptyState={{
+            message: 'Ingen material ännu',
+            ctaLabel: 'Ladda upp',
+            onAction: () => navigate('/hq/assets'),
+          }}
         />
       </div>
 
-      {/* Widget Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
-        {/* Revenue Over Time — 2/3 bredd på desktop */}
-        <div className="col-span-1 lg:col-span-2">
-          <Card className="p-6">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h3 className="font-semibold text-foreground">Kampanjaktivitet</h3>
-                <p className="text-xs text-muted-foreground">Nedladdningar per månad</p>
-              </div>
-            </div>
-            <ResponsiveContainer width="100%" height={220}>
-              <LineChart data={[
-                { month: 'Sep', nedladdningar: 12, kampanjer: 2 },
-                { month: 'Okt', nedladdningar: 28, kampanjer: 3 },
-                { month: 'Nov', nedladdningar: 19, kampanjer: 2 },
-                { month: 'Dec', nedladdningar: 35, kampanjer: 4 },
-                { month: 'Jan', nedladdningar: 22, kampanjer: 3 },
-                { month: 'Feb', nedladdningar: 41, kampanjer: 5 },
-                { month: 'Mar', nedladdningar: 38, kampanjer: 4 },
-              ]}>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                <XAxis dataKey="month" tick={{ fontSize: 12, fill: 'var(--muted-foreground)' }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fontSize: 12, fill: 'var(--muted-foreground)' }} axisLine={false} tickLine={false} />
-                <Tooltip contentStyle={{ backgroundColor: 'var(--card)', border: '1px solid var(--border)', borderRadius: '8px', fontSize: '12px' }} />
-                <Legend wrapperStyle={{ fontSize: '12px' }} />
-                <Line type="monotone" dataKey="nedladdningar" stroke="oklch(0.60 0.18 252)" strokeWidth={2} dot={false} name="Nedladdningar" />
-                <Line type="monotone" dataKey="kampanjer" stroke="oklch(0.60 0.22 295)" strokeWidth={2} dot={false} name="Kampanjer" />
-              </LineChart>
-            </ResponsiveContainer>
-          </Card>
-        </div>
+      {/* 3. Trend Section - what has changed */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {/* Line chart - trend over time (2/3 width) */}
+        <WidgetCard
+          title="Kampanjaktivitet"
+          subtitle="Nedladdningar per månad, senaste 7 månader vs föregående period"
+          className="lg:col-span-2"
+          onExportCSV={() => handleExportCSV('Kampanjaktivitet')}
+          onViewAll={() => navigate('/hq/analytics')}
+        >
+          <ResponsiveContainer width="100%" height={240}>
+            <LineChart data={MOCK_ACTIVITY_DATA}>
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+              <XAxis
+                dataKey="month"
+                tick={{ fontSize: 12, fill: 'var(--muted-foreground)' }}
+                axisLine={false}
+                tickLine={false}
+              />
+              <YAxis
+                tick={{ fontSize: 12, fill: 'var(--muted-foreground)' }}
+                axisLine={false}
+                tickLine={false}
+              />
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: 'var(--card)',
+                  border: '1px solid var(--border)',
+                  borderRadius: '8px',
+                  fontSize: '12px',
+                }}
+              />
+              <Legend wrapperStyle={{ fontSize: '12px' }} />
+              <Line
+                type="monotone"
+                dataKey="downloads"
+                stroke="oklch(0.60 0.18 252)"
+                strokeWidth={2}
+                dot={false}
+                name="Denna period"
+              />
+              <Line
+                type="monotone"
+                dataKey="prevDownloads"
+                stroke="oklch(0.60 0.18 252)"
+                strokeWidth={2}
+                strokeDasharray="5 5"
+                strokeOpacity={0.5}
+                dot={false}
+                name="Föregående period"
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        </WidgetCard>
 
-        {/* Franchisetagare per region — 1/3 bredd på desktop */}
-        <div className="col-span-1 lg:col-span-1">
-          <Card className="p-6 h-full">
-            <h3 className="font-semibold text-foreground mb-1">Franchisetagare</h3>
-            <p className="text-xs text-muted-foreground mb-4">Per region</p>
-            <div className="space-y-3">
-              {[
-                { region: 'Stockholm', count: 4, pct: 33 },
-                { region: 'Göteborg', count: 3, pct: 25 },
-                { region: 'Malmö', count: 2, pct: 17 },
-                { region: 'Uppsala', count: 2, pct: 17 },
-                { region: 'Övriga', count: 1, pct: 8 },
-              ].map(r => (
-                <div key={r.region}>
-                  <div className="flex justify-between text-sm mb-1">
-                    <span className="text-foreground">{r.region}</span>
-                    <span className="text-muted-foreground font-medium">{r.count}</span>
-                  </div>
-                  <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-                    <div
-                      className="h-full rounded-full"
-                      style={{ width: `${r.pct}%`, backgroundColor: 'oklch(0.60 0.18 252)' }}
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </Card>
-        </div>
+        {/* Bar chart - downloads per campaign (1/3 width) */}
+        <WidgetCard
+          title="Nedladdningar per kategori"
+          subtitle="Fördelning senaste 30 dagarna"
+          onExportCSV={() => handleExportCSV('Nedladdningar per kategori')}
+        >
+          <ResponsiveContainer width="100%" height={240}>
+            <BarChart
+              data={[
+                { name: 'Sociala medier', value: 45 },
+                { name: 'Print', value: 32 },
+                { name: 'Digital annons', value: 28 },
+                { name: 'Skyltning', value: 18 },
+              ]}
+              layout="vertical"
+            >
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+              <XAxis type="number" tick={{ fontSize: 11 }} />
+              <YAxis
+                dataKey="name"
+                type="category"
+                tick={{ fontSize: 11 }}
+                width={90}
+              />
+              <Tooltip
+                contentStyle={{
+                  fontSize: '12px',
+                  backgroundColor: 'var(--card)',
+                  border: '1px solid var(--border)',
+                  borderRadius: '8px',
+                }}
+              />
+              <Bar dataKey="value" fill="oklch(0.60 0.18 252)" radius={[0, 4, 4, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </WidgetCard>
       </div>
 
-      {/* Bottom row: 3 kolumner */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+      {/* 4. Distribution Section - segments */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {/* Kampanjstatus donut */}
-        <Card className="p-6">
-          <h3 className="font-semibold text-foreground mb-1">Kampanjstatus</h3>
-          <p className="text-xs text-muted-foreground mb-3">Fördelning</p>
-          <ResponsiveContainer width="100%" height={160}>
+        <WidgetCard
+          title="Kampanjstatus"
+          subtitle="Fördelning av alla kampanjer"
+          onExportCSV={() => handleExportCSV('Kampanjstatus')}
+        >
+          <ResponsiveContainer width="100%" height={180}>
             <PieChart>
               <Pie
                 data={[
-                  { name: 'Aktiva', value: 2 },
-                  { name: 'Utkast', value: 3 },
+                  { name: 'Aktiva', value: stats.activeCampaigns ?? 2 },
+                  { name: 'Utkast', value: attentionItems.pendingApproval || 3 },
                   { name: 'Klara', value: 1 },
                 ]}
                 cx="50%"
@@ -425,101 +623,170 @@ export default function DashboardPage() {
                 outerRadius={70}
                 dataKey="value"
               >
-                {['oklch(0.60 0.18 252)', 'oklch(0.60 0.22 295)', 'oklch(0.70 0.15 160)'].map((color, i) => (
+                {[
+                  'oklch(0.60 0.18 252)',
+                  'oklch(0.75 0.15 85)',
+                  'oklch(0.70 0.15 160)',
+                ].map((color, i) => (
                   <Cell key={i} fill={color} />
                 ))}
               </Pie>
-              <Tooltip contentStyle={{ fontSize: '12px', backgroundColor: 'var(--card)', border: '1px solid var(--border)', borderRadius: '8px' }} />
+              <Tooltip
+                contentStyle={{
+                  fontSize: '12px',
+                  backgroundColor: 'var(--card)',
+                  border: '1px solid var(--border)',
+                  borderRadius: '8px',
+                }}
+              />
               <Legend wrapperStyle={{ fontSize: '11px' }} />
             </PieChart>
           </ResponsiveContainer>
-        </Card>
+        </WidgetCard>
 
-        {/* Snabbåtgärder */}
-        <Card className="p-6">
-          <h3 className="font-semibold text-foreground mb-4">Snabbåtgärder</h3>
-          <div className="space-y-2">
-            <Button className="w-full justify-start" variant="outline" onClick={() => navigate('/hq/campaigns/new')}>
-              <Plus className="h-4 w-4 mr-2" /> Ny kampanj
-            </Button>
-            <Button className="w-full justify-start" variant="outline" onClick={() => navigate('/hq/brand')}>
-              <Palette className="h-4 w-4 mr-2" /> Redigera brand
-            </Button>
-            <Button className="w-full justify-start" variant="outline" onClick={() => navigate('/hq/franchisees')}>
-              <Users className="h-4 w-4 mr-2" /> Franchisetagare
-            </Button>
-          </div>
-        </Card>
+        {/* Mest aktiva franchisetagare - WAS-387 */}
+        <WidgetCard
+          title="Mest aktiva franchisetagare"
+          subtitle="Baserat på kampanjaktivitet senaste 30 dagarna"
+          onExportCSV={() => handleExportCSV('Franchisetagare aktivitet')}
+          onViewAll={() => navigate('/hq/franchisees')}
+        >
+          <RankedList
+            items={MOCK_FRANCHISEE_ACTIVITY.map((f) => ({
+              id: f.id,
+              name: f.name,
+              value: f.activityScore,
+              subtext: `${f.campaignCount} kampanjer`,
+              badge:
+                f.activityScore >= 80
+                  ? { label: 'Topp', variant: 'success' as const }
+                  : undefined,
+            }))}
+            loading={loading}
+            emptyMessage="Inga franchisetagare ännu"
+            valueLabel="%"
+            onItemClick={(item) =>
+              navigate(`/hq/franchisees/${item.id}`)
+            }
+          />
+        </WidgetCard>
 
-        {/* Systemstatus */}
-        <Card className="p-6">
-          <h3 className="font-semibold text-foreground mb-4">Systemstatus</h3>
-          <div className="space-y-3">
-            {[
-              { label: 'API', status: 'Online', ok: true },
-              { label: 'Bildgenerering', status: 'Online', ok: true },
-              { label: 'Lagring', status: 'Online', ok: true },
-              { label: 'E-post', status: 'Online', ok: true },
-            ].map(s => (
-              <div key={s.label} className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">{s.label}</span>
-                <span className={`flex items-center gap-1 font-medium ${s.ok ? 'text-green-600' : 'text-red-500'}`}>
-                  <span className={`h-1.5 w-1.5 rounded-full ${s.ok ? 'bg-green-500' : 'bg-red-500'}`} />
-                  {s.status}
-                </span>
-              </div>
-            ))}
-          </div>
-        </Card>
+        {/* Väntar åtgärd - WAS-387 */}
+        <WidgetCard
+          title="Väntar åtgärd"
+          subtitle="Kampanjer och material som väntar på godkännande"
+          onViewAll={() => navigate('/hq/campaigns?status=draft')}
+        >
+          {MOCK_PENDING_ACTIONS.length === 0 ? (
+            <div className="py-6 text-center">
+              <CheckCircle2 className="h-8 w-8 text-green-500 mx-auto mb-2" />
+              <p className="text-sm text-muted-foreground">
+                Inget väntar på godkännande
+              </p>
+            </div>
+          ) : (
+            <RankedList
+              items={MOCK_PENDING_ACTIONS.map((p) => ({
+                id: p.id,
+                name: p.name,
+                value: p.daysWaiting,
+                subtext: p.type === 'campaign' ? 'Kampanj' : 'Material',
+                badge:
+                  p.daysWaiting >= 3
+                    ? { label: 'Försenad', variant: 'warning' as const }
+                    : undefined,
+              }))}
+              loading={loading}
+              emptyMessage="Inget att godkänna"
+              valueLabel=" dagar"
+              showRank={false}
+              onItemClick={(item) =>
+                navigate(`/hq/campaigns/${item.id}`)
+              }
+            />
+          )}
+        </WidgetCard>
       </div>
 
-      {/* Recent campaigns */}
-      <div>
-        <h2 className="text-lg font-semibold text-foreground mb-4">
-          Senaste kampanjer
-        </h2>
-        <Card className="divide-y divide-border">
-          {loading ? (
-            // Loading skeleton
-            Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="p-4 flex items-center gap-4">
+      {/* 5. Recent campaigns list */}
+      <WidgetCard
+        title="Senaste kampanjer"
+        subtitle="De 5 senast skapade kampanjerna"
+        onViewAll={() => navigate('/hq/campaigns')}
+      >
+        {loading ? (
+          // Loading skeleton
+          <div className="divide-y divide-border">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="py-3 flex items-center gap-4">
                 <div className="h-5 w-5 bg-muted animate-pulse rounded" />
                 <div className="flex-1">
                   <div className="h-4 w-48 bg-muted animate-pulse rounded mb-1" />
                   <div className="h-3 w-24 bg-muted/60 animate-pulse rounded" />
                 </div>
               </div>
-            ))
-          ) : recentCampaigns.length === 0 ? (
-            <div className="p-8 text-center text-muted-foreground flex flex-col items-center gap-3">
-              <Inbox className="h-10 w-10 text-muted-foreground/50" />
-              <span>Inga kampanjer än</span>
-            </div>
-          ) : (
-            recentCampaigns.map((campaign) => {
+            ))}
+          </div>
+        ) : recentCampaigns.length === 0 ? (
+          <EmptyState
+            icon={Inbox}
+            title="Inga kampanjer än"
+            description="Skapa din första kampanj för att komma igång"
+            ctaLabel="Skapa kampanj"
+            onAction={() => navigate('/hq/campaigns/new')}
+          />
+        ) : (
+          <div className="divide-y divide-border">
+            {recentCampaigns.map((campaign) => {
               const style = STATUS_STYLES[campaign.status]
               return (
                 <button
                   key={campaign.id}
-                  className="w-full p-4 flex items-center gap-4 hover:bg-muted/50 transition-colors text-left"
+                  className="w-full py-3 flex items-center gap-4 hover:bg-muted/50 transition-colors text-left rounded-lg px-2 -mx-2"
                   onClick={() => navigate(`/hq/campaigns/${campaign.id}`)}
                 >
                   <span className="text-lg">{style.icon}</span>
-                  <div className="flex-1">
-                    <div className="font-medium text-foreground">
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium text-foreground truncate">
                       {campaign.name}
                     </div>
                     <div className={`text-sm ${style.color}`}>
                       {style.label} · {campaign.formatCount} format
                     </div>
                   </div>
+                  <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0" />
                 </button>
               )
-            })
-          )}
-        </Card>
-      </div>
+            })}
+          </div>
+        )}
+      </WidgetCard>
 
+      {/* 6. System status - compact footer */}
+      <Card className="p-4">
+        <div className="flex items-center justify-between flex-wrap gap-4">
+          <div className="flex items-center gap-6 text-sm">
+            {[
+              { label: 'API', ok: true },
+              { label: 'Bildgenerering', ok: true },
+              { label: 'Lagring', ok: true },
+              { label: 'E-post', ok: true },
+            ].map((s) => (
+              <div key={s.label} className="flex items-center gap-1.5">
+                <span
+                  className={`h-2 w-2 rounded-full ${
+                    s.ok ? 'bg-green-500' : 'bg-red-500'
+                  }`}
+                />
+                <span className="text-muted-foreground">{s.label}</span>
+              </div>
+            ))}
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Alla system fungerar normalt
+          </p>
+        </div>
+      </Card>
     </div>
   )
 }
