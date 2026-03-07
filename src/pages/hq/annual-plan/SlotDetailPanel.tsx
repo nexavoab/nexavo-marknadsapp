@@ -78,11 +78,11 @@ export default function SlotDetailPanel({ slot, onClose }: SlotDetailPanelProps)
           </div>
 
           {/* Franchisees */}
-          <div>
+          <div className={slot.status === 'cancelled' ? 'opacity-50' : ''}>
             <h4 className="text-sm font-medium text-muted-foreground mb-1">Franchisees</h4>
             <div className="flex items-center gap-2 text-foreground">
               <Users className="h-4 w-4 text-muted-foreground" />
-              <span>{slot.franchiseeCount ?? 0} aktiva</span>
+              <span>{slot.status === 'cancelled' ? 0 : (slot.franchiseeCount ?? 0)} aktiva</span>
             </div>
           </div>
 

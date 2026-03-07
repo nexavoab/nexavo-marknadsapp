@@ -72,7 +72,7 @@ export const mockCampaignSlots: CampaignSlot[] = [
     endDate: '2026-04-20',
     channel: 'Email',
     status: 'cancelled',
-    franchiseeCount: 12,
+    franchiseeCount: 0,
     budget: 15000,
     channels: ['Email']
   }

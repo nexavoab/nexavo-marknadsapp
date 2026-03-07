@@ -29,6 +29,7 @@ interface GanttCampaign {
   left: number
   width: number
   row: number
+  franchiseeCount: number
 }
 
 function getMonthDays(year: number, month: number) {
@@ -160,6 +161,10 @@ export default function CalendarPage() {
       }
       rowEndDays[row] = overlapEndDay
 
+      // Mock franchisee counts (cycle through: 12, 8, 24, 6, 18)
+      const mockFranchiseeCounts = [12, 8, 24, 6, 18]
+      const franchiseeCount = mockFranchiseeCounts[result.length % mockFranchiseeCounts.length]
+
       result.push({
         id: campaign.id,
         name: campaign.name,
@@ -167,6 +172,7 @@ export default function CalendarPage() {
         left,
         width,
         row,
+        franchiseeCount,
       })
     })
 
@@ -293,9 +299,9 @@ export default function CalendarPage() {
                         onClick={() => navigate(`/hq/campaigns/${campaign.id}`)}
                         className={`
                           absolute pointer-events-auto
-                          py-0.5 px-1 rounded-sm text-xs font-medium truncate
+                          py-0.5 px-1 rounded-sm text-xs font-medium
                           hover:opacity-80 hover:scale-[1.02] transition-all cursor-pointer
-                          shadow-sm
+                          shadow-sm flex items-center gap-1
                           ${colors.bg} ${colors.text}
                         `}
                         style={{
@@ -305,7 +311,8 @@ export default function CalendarPage() {
                         }}
                         title={`${campaign.name} (${campaign.status})`}
                       >
-                        {campaign.name}
+                        <span className="truncate">{campaign.name}</span>
+                        <span className="opacity-70 whitespace-nowrap">· {campaign.franchiseeCount} franchisees</span>
                       </button>
                     )
                   })}
