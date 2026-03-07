@@ -22,9 +22,12 @@ interface CalendarCampaign {
   end_date: string | null
 }
 
-interface GanttCampaign extends CalendarCampaign {
-  startCol: number
-  span: number
+interface GanttCampaign {
+  id: string
+  name: string
+  status: string
+  left: number
+  width: number
   row: number
 }
 
@@ -103,74 +106,72 @@ export default function CalendarPage() {
 
   // Calculate Gantt-style campaign bands
   const ganttCampaigns = useMemo(() => {
+    const daysInMonth = new Date(year, month + 1, 0).getDate()
     const monthStart = new Date(year, month, 1)
-    const monthEnd = new Date(year, month + 1, 0)
+    const monthEnd = new Date(year, month, daysInMonth, 23, 59, 59)
+    
+    // Parse date string as local date (not UTC)
+    const parseLocalDate = (dateStr: string): Date => {
+      const [y, m, d] = dateStr.split('T')[0].split('-').map(Number)
+      return new Date(y, m - 1, d)
+    }
     
     const relevantCampaigns = campaigns.filter((c) => {
       if (!c.start_date) return false
-      const start = new Date(c.start_date)
-      const end = c.end_date ? new Date(c.end_date) : start
+      const start = parseLocalDate(c.start_date)
+      const end = c.end_date ? parseLocalDate(c.end_date) : start
       // Campaign overlaps with current month
       return start <= monthEnd && end >= monthStart
     })
 
     // Sort by start date
     relevantCampaigns.sort((a, b) => {
-      const aStart = new Date(a.start_date!)
-      const bStart = new Date(b.start_date!)
+      const aStart = parseLocalDate(a.start_date!)
+      const bStart = parseLocalDate(b.start_date!)
       return aStart.getTime() - bStart.getTime()
     })
 
     // Assign rows to avoid overlaps
     const result: GanttCampaign[] = []
-    const rowEndDates: Date[] = []
+    const rowEndDays: number[] = []
 
     relevantCampaigns.forEach((campaign) => {
-      const start = new Date(campaign.start_date!)
-      const end = campaign.end_date ? new Date(campaign.end_date) : start
+      const campaignStart = parseLocalDate(campaign.start_date!)
+      const campaignEnd = campaign.end_date 
+        ? parseLocalDate(campaign.end_date) 
+        : campaignStart
 
-      // Find grid position
-      const dayIndex = days.findIndex(
-        (d) => formatDateKey(d.date) === campaign.start_date!.split('T')[0]
-      )
-      
-      // Calculate span within visible grid
-      let startCol = dayIndex >= 0 ? dayIndex : 0
-      let endIndex = days.findIndex(
-        (d) => formatDateKey(d.date) === (campaign.end_date || campaign.start_date)!.split('T')[0]
-      )
-      
-      // Handle campaigns that start before or end after visible grid
-      if (start < days[0].date) {
-        startCol = 0
-      }
-      if (endIndex < 0 || end > days[days.length - 1].date) {
-        endIndex = days.length - 1
-      }
+      // Calculate overlapping days within this month
+      const overlapStartDay = campaignStart < monthStart ? 1 : campaignStart.getDate()
+      const overlapEndDay = campaignEnd > monthEnd ? daysInMonth : campaignEnd.getDate()
 
-      const span = Math.max(1, endIndex - startCol + 1)
+      // Calculate left and width as percentages
+      const left = ((overlapStartDay - 1) / daysInMonth) * 100
+      const width = ((overlapEndDay - overlapStartDay + 1) / daysInMonth) * 100
 
-      // Find available row
+      // Find available row (to avoid vertical overlap)
       let row = 0
-      for (let i = 0; i < rowEndDates.length; i++) {
-        if (rowEndDates[i] < start) {
+      for (let i = 0; i < rowEndDays.length; i++) {
+        if (rowEndDays[i] < overlapStartDay) {
           row = i
           break
         }
         row = i + 1
       }
-      rowEndDates[row] = end
+      rowEndDays[row] = overlapEndDay
 
       result.push({
-        ...campaign,
-        startCol,
-        span,
+        id: campaign.id,
+        name: campaign.name,
+        status: campaign.status,
+        left,
+        width,
         row,
       })
     })
 
     return result
-  }, [campaigns, days, year, month])
+  }, [campaigns, year, month])
 
   // Check if there are any campaigns for current month
   const hasCampaignsThisMonth = ganttCampaigns.length > 0
@@ -270,16 +271,9 @@ export default function CalendarPage() {
               {/* Gantt campaign bands overlay */}
               {hasCampaignsThisMonth && (
                 <div className="absolute inset-0 pointer-events-none">
-                  <div className="grid grid-cols-7 gap-1 h-full">
-                    {days.map((_, idx) => (
-                      <div key={idx} className="relative" />
-                    ))}
-                  </div>
                   {ganttCampaigns.map((campaign) => {
                     const colors = STATUS_COLORS[campaign.status] || STATUS_COLORS.draft
                     const rowOffset = 24 + campaign.row * 22 // Start below date number
-                    const colWidth = 100 / 7
-                    const gapAdjustment = 0.15 // Account for gap-1 (4px)
 
                     return (
                       <button
@@ -293,8 +287,8 @@ export default function CalendarPage() {
                           ${colors.bg} ${colors.text}
                         `}
                         style={{
-                          left: `calc(${campaign.startCol * colWidth}% + ${campaign.startCol * gapAdjustment}%)`,
-                          width: `calc(${campaign.span * colWidth}% - ${gapAdjustment}%)`,
+                          left: `${campaign.left}%`,
+                          width: `${campaign.width}%`,
                           top: `${rowOffset}px`,
                         }}
                         title={`${campaign.name} (${campaign.status})`}
