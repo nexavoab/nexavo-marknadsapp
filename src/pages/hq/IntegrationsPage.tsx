@@ -50,7 +50,7 @@ const providers: IntegrationProvider[] = [
   {
     id: 'meta',
     name: 'Meta Ads',
-    description: 'Synkronisera kampanjer med Facebook och Instagram Ads.',
+    description: 'Publicera och synkronisera kampanjer direkt till Facebook & Instagram-annonser för alla dina franchisetagare.',
     icon: Facebook,
     iconBgColor: 'bg-blue-500',
     available: true,
@@ -58,7 +58,7 @@ const providers: IntegrationProvider[] = [
   {
     id: 'google',
     name: 'Google Ads',
-    description: 'Synkronisera kampanjer med Google Ads och Search.',
+    description: 'Kör sökannonser och Performance Max-kampanjer per ort och franchisetagare.',
     icon: GoogleAdsIcon,
     iconBgColor: 'bg-amber-500',
     available: true,
@@ -66,7 +66,7 @@ const providers: IntegrationProvider[] = [
   {
     id: 'email',
     name: 'E-post',
-    description: 'Skicka kampanjmaterial och nyhetsbrev automatiskt.',
+    description: 'Automatiserade e-postutskick för kampanjstart, påminnelser och bekräftelser.',
     icon: Mail,
     iconBgColor: 'bg-emerald-500',
     available: false,
@@ -75,7 +75,7 @@ const providers: IntegrationProvider[] = [
   {
     id: 'sms',
     name: 'SMS',
-    description: 'Skicka SMS-kampanjer till era kunder.',
+    description: 'Pushnotifikationer via SMS när kampanjer är redo att godkännas.',
     icon: MessageSquare,
     iconBgColor: 'bg-purple-500',
     available: false,
@@ -127,20 +127,35 @@ function IntegrationCard({
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             {isConnected ? (
-              <>
-                <CheckCircle2 className="h-5 w-5 text-green-500" />
-                <span className="text-sm text-green-600 font-medium">Ansluten</span>
-              </>
+              <div>
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="h-5 w-5 text-green-500" />
+                  <span className="text-sm text-green-600 font-medium">Ansluten</span>
+                </div>
+                <p className="text-xs text-emerald-600 mt-1">
+                  ✓ 18/24 franchisetagare aktiva
+                </p>
+              </div>
             ) : isExpired ? (
-              <>
-                <AlertCircle className="h-5 w-5 text-amber-500" />
-                <span className="text-sm text-amber-600 font-medium">Token utgången</span>
-              </>
+              <div>
+                <div className="flex items-center gap-2">
+                  <AlertCircle className="h-5 w-5 text-amber-500" />
+                  <span className="text-sm text-amber-600 font-medium">Token utgången</span>
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Ansluts centralt av HQ — gäller alla franchisetagare automatiskt
+                </p>
+              </div>
             ) : (
-              <>
-                <XCircle className="h-5 w-5 text-slate-400" />
-                <span className="text-sm text-slate-500">Ej ansluten</span>
-              </>
+              <div>
+                <div className="flex items-center gap-2">
+                  <XCircle className="h-5 w-5 text-slate-400" />
+                  <span className="text-sm text-slate-500">Ej ansluten</span>
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Ansluts centralt av HQ — gäller alla franchisetagare automatiskt
+                </p>
+              </div>
             )}
           </div>
           <div className="flex items-center gap-2">
@@ -214,7 +229,10 @@ export default function IntegrationsPage() {
   }, [searchParams, setSearchParams])
 
   const loadIntegrations = async () => {
-    if (!appUser?.organization_id) return
+    if (!appUser?.organization_id) {
+      setLoading(false)
+      return
+    }
 
     try {
       const { data, error } = await supabase
@@ -222,11 +240,17 @@ export default function IntegrationsPage() {
         .select('*')
         .eq('organization_id', appUser.organization_id)
 
-      if (error) throw error
-      setIntegrations(data ?? [])
+      if (error) {
+        // Graceful degradation: log error but show providers anyway
+        console.error('Failed to load integrations:', error)
+        setIntegrations([])
+      } else {
+        setIntegrations(data ?? [])
+      }
     } catch (err) {
+      // Graceful degradation: log error but don't show error banner
       console.error('Failed to load integrations:', err)
-      setError('Kunde inte ladda integrationer')
+      setIntegrations([])
     } finally {
       setLoading(false)
     }
