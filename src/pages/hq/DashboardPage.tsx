@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Palette, Users, Plus, Megaphone, Download, FolderOpen } from 'lucide-react'
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import type { CampaignStatus } from '@/types'
@@ -47,7 +48,7 @@ function StatCard({
   icon?: React.ElementType
 }) {
   return (
-    <Card className="p-6">
+    <Card className="p-5 border border-border/60 shadow-sm rounded-xl">
       <div className="flex items-center justify-between mb-4">
         <p className="text-sm font-medium text-muted-foreground">{label}</p>
         {Icon && (
@@ -219,6 +220,138 @@ export default function DashboardPage() {
         />
       </div>
 
+      {/* Widget Grid */}
+      <div className="grid grid-cols-3 gap-4 mb-6">
+        {/* Revenue Over Time — 2/3 bredd */}
+        <div className="col-span-2">
+          <Card className="p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="font-semibold text-foreground">Kampanjaktivitet</h3>
+                <p className="text-xs text-muted-foreground">Nedladdningar per månad</p>
+              </div>
+            </div>
+            <ResponsiveContainer width="100%" height={220}>
+              <LineChart data={[
+                { month: 'Sep', nedladdningar: 12, kampanjer: 2 },
+                { month: 'Okt', nedladdningar: 28, kampanjer: 3 },
+                { month: 'Nov', nedladdningar: 19, kampanjer: 2 },
+                { month: 'Dec', nedladdningar: 35, kampanjer: 4 },
+                { month: 'Jan', nedladdningar: 22, kampanjer: 3 },
+                { month: 'Feb', nedladdningar: 41, kampanjer: 5 },
+                { month: 'Mar', nedladdningar: 38, kampanjer: 4 },
+              ]}>
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                <XAxis dataKey="month" tick={{ fontSize: 12, fill: 'var(--muted-foreground)' }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fontSize: 12, fill: 'var(--muted-foreground)' }} axisLine={false} tickLine={false} />
+                <Tooltip contentStyle={{ backgroundColor: 'var(--card)', border: '1px solid var(--border)', borderRadius: '8px', fontSize: '12px' }} />
+                <Legend wrapperStyle={{ fontSize: '12px' }} />
+                <Line type="monotone" dataKey="nedladdningar" stroke="oklch(0.60 0.18 252)" strokeWidth={2} dot={false} name="Nedladdningar" />
+                <Line type="monotone" dataKey="kampanjer" stroke="oklch(0.60 0.22 295)" strokeWidth={2} dot={false} name="Kampanjer" />
+              </LineChart>
+            </ResponsiveContainer>
+          </Card>
+        </div>
+
+        {/* Franchisetagare per region — 1/3 bredd */}
+        <div className="col-span-1">
+          <Card className="p-6 h-full">
+            <h3 className="font-semibold text-foreground mb-1">Franchisetagare</h3>
+            <p className="text-xs text-muted-foreground mb-4">Per region</p>
+            <div className="space-y-3">
+              {[
+                { region: 'Stockholm', count: 4, pct: 33 },
+                { region: 'Göteborg', count: 3, pct: 25 },
+                { region: 'Malmö', count: 2, pct: 17 },
+                { region: 'Uppsala', count: 2, pct: 17 },
+                { region: 'Övriga', count: 1, pct: 8 },
+              ].map(r => (
+                <div key={r.region}>
+                  <div className="flex justify-between text-sm mb-1">
+                    <span className="text-foreground">{r.region}</span>
+                    <span className="text-muted-foreground font-medium">{r.count}</span>
+                  </div>
+                  <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                    <div
+                      className="h-full rounded-full"
+                      style={{ width: `${r.pct}%`, backgroundColor: 'oklch(0.60 0.18 252)' }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Card>
+        </div>
+      </div>
+
+      {/* Bottom row: 3 kolumner */}
+      <div className="grid grid-cols-3 gap-4 mb-6">
+        {/* Kampanjstatus donut */}
+        <Card className="p-6">
+          <h3 className="font-semibold text-foreground mb-1">Kampanjstatus</h3>
+          <p className="text-xs text-muted-foreground mb-3">Fördelning</p>
+          <ResponsiveContainer width="100%" height={160}>
+            <PieChart>
+              <Pie
+                data={[
+                  { name: 'Aktiva', value: 2 },
+                  { name: 'Utkast', value: 3 },
+                  { name: 'Klara', value: 1 },
+                ]}
+                cx="50%"
+                cy="50%"
+                innerRadius={45}
+                outerRadius={70}
+                dataKey="value"
+              >
+                {['oklch(0.60 0.18 252)', 'oklch(0.60 0.22 295)', 'oklch(0.70 0.15 160)'].map((color, i) => (
+                  <Cell key={i} fill={color} />
+                ))}
+              </Pie>
+              <Tooltip contentStyle={{ fontSize: '12px', backgroundColor: 'var(--card)', border: '1px solid var(--border)', borderRadius: '8px' }} />
+              <Legend wrapperStyle={{ fontSize: '11px' }} />
+            </PieChart>
+          </ResponsiveContainer>
+        </Card>
+
+        {/* Snabbåtgärder */}
+        <Card className="p-6">
+          <h3 className="font-semibold text-foreground mb-4">Snabbåtgärder</h3>
+          <div className="space-y-2">
+            <Button className="w-full justify-start" variant="outline" onClick={() => navigate('/hq/campaigns/new')}>
+              <Plus className="h-4 w-4 mr-2" /> Ny kampanj
+            </Button>
+            <Button className="w-full justify-start" variant="outline" onClick={() => navigate('/hq/brand')}>
+              <Palette className="h-4 w-4 mr-2" /> Redigera brand
+            </Button>
+            <Button className="w-full justify-start" variant="outline" onClick={() => navigate('/hq/franchisees')}>
+              <Users className="h-4 w-4 mr-2" /> Franchisetagare
+            </Button>
+          </div>
+        </Card>
+
+        {/* Systemstatus */}
+        <Card className="p-6">
+          <h3 className="font-semibold text-foreground mb-4">Systemstatus</h3>
+          <div className="space-y-3">
+            {[
+              { label: 'API', status: 'Online', ok: true },
+              { label: 'Bildgenerering', status: 'Online', ok: true },
+              { label: 'Lagring', status: 'Online', ok: true },
+              { label: 'E-post', status: 'Online', ok: true },
+            ].map(s => (
+              <div key={s.label} className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">{s.label}</span>
+                <span className={`flex items-center gap-1 font-medium ${s.ok ? 'text-green-600' : 'text-red-500'}`}>
+                  <span className={`h-1.5 w-1.5 rounded-full ${s.ok ? 'bg-green-500' : 'bg-red-500'}`} />
+                  {s.status}
+                </span>
+              </div>
+            ))}
+          </div>
+        </Card>
+      </div>
+
       {/* Recent campaigns */}
       <div>
         <h2 className="text-lg font-semibold text-slate-900 mb-4">
@@ -265,26 +398,6 @@ export default function DashboardPage() {
         </Card>
       </div>
 
-      {/* Quick actions */}
-      <div>
-        <h2 className="text-lg font-semibold text-slate-900 mb-4">
-          Snabbåtgärder
-        </h2>
-        <div className="flex flex-wrap gap-3">
-          <Button onClick={() => navigate('/hq/campaigns/new')}>
-            <Plus className="w-4 h-4 mr-2" />
-            Ny kampanj
-          </Button>
-          <Button variant="outline" onClick={() => navigate('/hq/brand')}>
-            <Palette className="w-4 h-4 mr-2" />
-            Redigera brand
-          </Button>
-          <Button variant="outline" onClick={() => navigate('/hq/franchisees')}>
-            <Users className="w-4 h-4 mr-2" />
-            Franchisees
-          </Button>
-        </div>
-      </div>
     </div>
   )
 }
