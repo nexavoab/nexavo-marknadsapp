@@ -62,11 +62,11 @@ function formatDateKey(date: Date): string {
 }
 
 const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
-  active: { bg: 'bg-green-500', text: 'text-white' },
-  draft: { bg: 'bg-yellow-400', text: 'text-yellow-900' },
-  scheduled: { bg: 'bg-blue-500', text: 'text-white' },
-  completed: { bg: 'bg-gray-400', text: 'text-white' },
-  archived: { bg: 'bg-gray-300', text: 'text-gray-700' },
+  active: { bg: 'bg-emerald-500/80', text: 'text-white' },
+  draft: { bg: 'bg-amber-400/80', text: 'text-amber-900' },
+  scheduled: { bg: 'bg-blue-500/80', text: 'text-white' },
+  completed: { bg: 'bg-slate-400/70', text: 'text-white' },
+  archived: { bg: 'bg-gray-300/70', text: 'text-gray-700' },
 }
 
 export default function CalendarPage() {
@@ -227,12 +227,19 @@ export default function CalendarPage() {
           </div>
         ) : (
           <div className="min-w-[600px]">
+            {/* Month + Year header */}
+            <div className="border-b border-border pb-2 mb-0">
+              <h3 className="text-base font-bold text-foreground">
+                {MONTHS[month]} {year}
+              </h3>
+            </div>
+
             {/* Weekday headers */}
-            <div className="grid grid-cols-7 gap-1 mb-2">
+            <div className="grid grid-cols-7 border-l border-t border-border">
               {WEEKDAYS.map((day) => (
                 <div
                   key={day}
-                  className="text-center text-sm font-medium text-muted-foreground py-2"
+                  className="text-center text-sm font-medium text-muted-foreground py-2 border-r border-b border-border bg-muted/30"
                 >
                   {day}
                 </div>
@@ -242,7 +249,7 @@ export default function CalendarPage() {
             {/* Calendar grid with Gantt bands */}
             <div className="relative">
               {/* Day cells */}
-              <div className="grid grid-cols-7 gap-1">
+              <div className="grid grid-cols-7 border-l border-border">
                 {days.map((day, idx) => {
                   const dateKey = formatDateKey(day.date)
                   const isToday = dateKey === today
@@ -251,9 +258,10 @@ export default function CalendarPage() {
                     <div
                       key={idx}
                       className={`
-                        min-h-[60px] md:min-h-[80px] p-1 border rounded-md relative
+                        group min-h-[60px] md:min-h-[80px] p-1 relative
+                        border-r border-b border-border
                         ${day.isCurrentMonth ? 'bg-card' : 'bg-muted/50'}
-                        ${isToday ? 'border-primary border-2' : 'border-border'}
+                        ${isToday ? 'ring-2 ring-inset ring-primary' : ''}
                       `}
                     >
                       <div
@@ -263,6 +271,10 @@ export default function CalendarPage() {
                       >
                         {day.date.getDate()}
                       </div>
+                      {/* Hover "+" indicator for empty cells */}
+                      <span className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 text-muted-foreground text-lg pointer-events-none">
+                        +
+                      </span>
                     </div>
                   )
                 })}
@@ -281,7 +293,7 @@ export default function CalendarPage() {
                         onClick={() => navigate(`/hq/campaigns/${campaign.id}`)}
                         className={`
                           absolute pointer-events-auto
-                          h-5 rounded px-1.5 text-xs font-medium truncate
+                          py-0.5 px-1 rounded-sm text-xs font-medium truncate
                           hover:opacity-80 hover:scale-[1.02] transition-all cursor-pointer
                           shadow-sm
                           ${colors.bg} ${colors.text}

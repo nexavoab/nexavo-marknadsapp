@@ -140,15 +140,19 @@ export function LocalVariantsTab({ campaignId, assets }: LocalVariantsTabProps) 
             <RefreshCw className="w-4 h-4 mr-1" />
             Uppdatera
           </Button>
-          <Button onClick={handleGenerate} disabled={generating || assets.length === 0}>
+          <Button 
+            onClick={handleGenerate} 
+            disabled={generating || assets.length === 0}
+            className="flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-2 rounded-md font-medium text-sm transition-colors mt-4 mb-2"
+          >
             {generating ? (
               <>
-                <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                <Loader2 className="w-4 h-4 animate-spin" />
                 Genererar...
               </>
             ) : (
               <>
-                <Sparkles className="w-4 h-4 mr-1" />
+                <Sparkles className="w-4 h-4" />
                 Generera alla varianter
               </>
             )}
@@ -169,7 +173,7 @@ export function LocalVariantsTab({ campaignId, assets }: LocalVariantsTabProps) 
           Inga aktiva franchisees hittades.
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-3 gap-3">
           {franchisees.map((franchisee) => {
             const franchiseeVariants = variantsByFranchisee[franchisee.id] || []
             const hasVariants = franchiseeVariants.length > 0

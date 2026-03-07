@@ -15,8 +15,8 @@ export default function CampaignSlotCard({ slot, onClick, colSpan = 1 }: Campaig
     <button
       onClick={onClick}
       className={`
-        w-full text-left px-2 py-1 rounded text-xs font-medium text-white
-        truncate transition-all cursor-pointer
+        w-full text-left px-2 py-1 rounded text-xs font-medium text-white font-sans
+        truncate transition-all cursor-pointer shadow-sm
         hover:opacity-90 hover:scale-[1.02] hover:shadow-md
         focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1
         ${statusConfig.bgClass}

@@ -1,5 +1,4 @@
 import { useState, useMemo } from 'react'
-import { Plus } from 'lucide-react'
 import { Card } from '@/components/ui/card'
 import { mockCampaignSlots, MONTHS_SV, STATUS_CONFIG } from '@/data/mockAnnualPlan'
 import type { CampaignSlot } from '@/data/mockAnnualPlan'
@@ -89,13 +88,13 @@ export default function AnnualPlanPage() {
         <div className="min-w-[900px]">
           {/* Month headers */}
           <div
-            className="grid gap-px mb-2"
+            className="grid gap-px mb-2 font-sans"
             style={{ gridTemplateColumns: `repeat(${TOTAL_COLUMNS}, minmax(40px, 1fr))` }}
           >
             {MONTHS_SV.map((month) => (
               <div
                 key={month}
-                className="col-span-2 text-center text-sm font-semibold text-foreground py-2 bg-muted rounded"
+                className="col-span-2 text-center text-sm font-semibold text-foreground py-2 bg-muted rounded border-b-2 border-border"
                 style={{ gridColumn: `span 2` }}
               >
                 {month}
@@ -125,7 +124,7 @@ export default function AnnualPlanPage() {
           </div>
 
           {/* Grid with slots */}
-          <div className="relative">
+          <div className="relative font-sans">
             {/* Background grid cells */}
             <div
               className="grid gap-px"
@@ -134,18 +133,15 @@ export default function AnnualPlanPage() {
               {Array.from({ length: TOTAL_COLUMNS }).map((_, colIdx) => (
                 <div
                   key={colIdx}
-                  className="group relative bg-card border border-border rounded min-h-[60px] hover:bg-muted/50 transition-colors"
+                  className={`group relative border border-border rounded min-h-[60px] cursor-pointer hover:bg-muted/30 transition-colors ${
+                    colIdx % 2 === 0 ? 'bg-background' : 'bg-muted/20'
+                  }`}
                   style={{ minHeight: `${maxRows * 32 + 20}px` }}
                 >
-                  {/* Add button on hover */}
-                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button
-                      className="p-1 rounded bg-muted text-muted-foreground hover:bg-primary hover:text-primary-foreground transition-colors"
-                      title="Lägg till kampanj"
-                    >
-                      <Plus className="h-4 w-4" />
-                    </button>
-                  </div>
+                  {/* Hover "+" indicator */}
+                  <span className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 text-muted-foreground text-xl font-light transition-opacity">
+                    +
+                  </span>
                 </div>
               ))}
             </div>
