@@ -19,7 +19,8 @@ import {
   X,
   ArrowRight,
   Search,
-  ShieldCheck
+  ShieldCheck,
+  Plug
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -44,6 +45,9 @@ import AnnualPlanPage from './annual-plan/AnnualPlanPage'
 // Compliance
 import CompliancePage from './CompliancePage'
 
+// Integrations
+import IntegrationsPage from './IntegrationsPage'
+
 // Internal test pages (no nav links)
 import AIPipelineTestPage from './AIPipelineTestPage'
 
@@ -56,6 +60,7 @@ const navItems = [
   { to: '/hq/annual-plan', icon: CalendarRange, label: 'Årshjul' },
   { to: '/hq/franchisees', icon: Users, label: 'Franchisetagare' },
   { to: '/hq/compliance', icon: ShieldCheck, label: 'Compliance' },
+  { to: '/hq/integrations', icon: Plug, label: 'Integrationer' },
   { to: '/hq/settings', icon: Settings, label: 'Inställningar' },
 ]
 
@@ -255,6 +260,7 @@ export default function HQLayout() {
             <Route path="annual-plan" element={<AnnualPlanPage />} />
             <Route path="franchisees" element={<FranchiseesPage />} />
             <Route path="compliance" element={<CompliancePage />} />
+            <Route path="integrations" element={<IntegrationsPage />} />
             <Route path="settings" element={<SettingsPage />} />
             {/* Internal test pages - no nav links */}
             <Route path="ai-test" element={<AIPipelineTestPage />} />
