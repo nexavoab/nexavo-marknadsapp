@@ -89,6 +89,14 @@ export default function DashboardPage() {
   const [recentCampaigns, setRecentCampaigns] = useState<RecentCampaign[]>([])
   const [loading, setLoading] = useState(true)
 
+  // Max 1.5s skeleton loading
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      setLoading(false)
+    }, 1500)
+    return () => clearTimeout(timeout)
+  }, [])
+
   useEffect(() => {
     async function fetchDashboardData() {
       if (!appUser?.organization_id) return
@@ -373,8 +381,9 @@ export default function DashboardPage() {
               </div>
             ))
           ) : recentCampaigns.length === 0 ? (
-            <div className="p-8 text-center text-muted-foreground">
-              Inga kampanjer än. Skapa din första!
+            <div className="p-8 text-center text-muted-foreground flex flex-col items-center gap-3">
+              <Inbox className="h-10 w-10 text-muted-foreground/50" />
+              <span>Inga kampanjer än</span>
             </div>
           ) : (
             recentCampaigns.map((campaign) => {
