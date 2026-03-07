@@ -68,51 +68,72 @@ const navItems = [
   { to: '/hq/settings', icon: Settings, label: 'Inställningar' },
 ]
 
-function Sidebar({ onClose }: { onClose?: () => void }) {
+function Sidebar({ onClose, collapsed = false }: { onClose?: () => void; collapsed?: boolean }) {
   const { appUser, signOut } = useAuth()
 
   return (
     <aside className="flex flex-col h-full bg-slate-900 text-white">
-      <div className="p-4">
-        <h1 className="text-xl font-bold">Nexavo</h1>
-        <p className="text-sm text-slate-400">Marknadsapp</p>
+      <div className={cn('p-4', collapsed && 'px-2 py-4')}>
+        {collapsed ? (
+          <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center mx-auto">
+            <span className="text-primary-foreground font-bold text-lg">N</span>
+          </div>
+        ) : (
+          <>
+            <h1 className="text-xl font-bold">Nexavo</h1>
+            <p className="text-sm text-slate-400">Marknadsapp</p>
+          </>
+        )}
       </div>
       <Separator className="bg-slate-700" />
-      <nav className="flex-1 p-2">
+      {!collapsed && (
+        <div className="px-4 pt-4 pb-2">
+          <span className="text-xs font-medium text-slate-500 uppercase tracking-wider">Huvudmeny</span>
+        </div>
+      )}
+      <nav className={cn('flex-1', collapsed ? 'p-1' : 'p-2')}>
         {navItems.map((item) => (
           <NavLink
             key={item.to}
             to={item.to}
             end={item.end}
             onClick={onClose}
+            title={collapsed ? item.label : undefined}
             className={({ isActive }) =>
               cn(
-                'flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors',
+                'flex items-center rounded-lg text-sm transition-colors',
+                collapsed ? 'justify-center p-2 mx-auto w-10 h-10' : 'gap-3 px-3 py-2',
                 isActive
                   ? 'bg-white/10 text-white font-medium'
                   : 'text-slate-400 hover:bg-white/5 hover:text-white'
               )
             }
           >
-            <item.icon className="h-5 w-5" />
-            {item.label}
+            <item.icon className={cn('h-5 w-5', collapsed && 'h-5 w-5')} />
+            {!collapsed && item.label}
           </NavLink>
         ))}
       </nav>
       <Separator className="bg-slate-700" />
-      <div className="p-4">
-        <div className="text-sm text-slate-400 mb-2">
-          Inloggad som<br />
-          <span className="text-white">{appUser?.name || appUser?.email}</span>
-        </div>
+      <div className={cn('p-4', collapsed && 'p-2')}>
+        {!collapsed && (
+          <div className="text-sm text-slate-400 mb-2">
+            Inloggad som<br />
+            <span className="text-white">{appUser?.name || appUser?.email}</span>
+          </div>
+        )}
         <Button
           variant="ghost"
           size="sm"
-          className="w-full justify-start text-slate-400 hover:text-white hover:bg-slate-800"
+          className={cn(
+            'text-slate-400 hover:text-white hover:bg-slate-800',
+            collapsed ? 'w-10 h-10 p-0 mx-auto' : 'w-full justify-start'
+          )}
           onClick={signOut}
+          title={collapsed ? 'Logga ut' : undefined}
         >
-          <LogOut className="h-4 w-4 mr-2" />
-          Logga ut
+          <LogOut className={cn('h-4 w-4', !collapsed && 'mr-2')} />
+          {!collapsed && 'Logga ut'}
         </Button>
       </div>
     </aside>
@@ -271,15 +292,15 @@ function TopbarFilters() {
         )}
       </div>
 
-      {/* Command Palette Trigger */}
-      <div ref={commandRef} className="relative flex-1 max-w-sm">
+      {/* Command Palette Trigger - wider, central search */}
+      <div ref={commandRef} className="relative flex-1 max-w-xl">
         <button
           onClick={() => setCommandOpen(true)}
-          className="w-full flex items-center gap-2 px-3 py-1.5 text-sm text-muted-foreground bg-muted/50 hover:bg-muted rounded-lg border border-border transition-colors"
+          className="w-full flex items-center gap-3 px-4 py-2 text-sm text-muted-foreground bg-muted/30 hover:bg-muted/50 rounded-xl border border-border/50 transition-colors"
         >
           <Search className="h-4 w-4" />
-          <span>Sök...</span>
-          <kbd className="ml-auto text-xs bg-background px-1.5 py-0.5 rounded border border-border">⌘K</kbd>
+          <span className="flex-1 text-left">Sök i appen...</span>
+          <kbd className="text-xs bg-background/80 px-2 py-0.5 rounded-md border border-border">⌘K</kbd>
         </button>
         
         {/* Command Palette Modal */}
@@ -378,6 +399,7 @@ function OnboardingPrompt() {
 
 function HQLayoutInner() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const { appUser } = useAuth()
   const { hasBrand, loading: brandLoading } = useBrandContext()
   const location = useLocation()
@@ -428,18 +450,42 @@ function HQLayoutInner() {
       </div>
 
       {/* Sidebar - desktop */}
-      <div className="hidden lg:block fixed inset-y-0 left-0 w-64">
-        <Sidebar />
+      <div
+        className={cn(
+          'hidden lg:block fixed inset-y-0 left-0 transition-all duration-200',
+          sidebarCollapsed ? 'w-16' : 'w-64'
+        )}
+      >
+        <Sidebar collapsed={sidebarCollapsed} />
       </div>
 
       {/* Main content */}
-      <div className="lg:ml-64 flex flex-col min-h-screen">
+      <div className={cn(
+        'flex flex-col min-h-screen transition-all duration-200',
+        sidebarCollapsed ? 'lg:ml-16' : 'lg:ml-64'
+      )}>
         {/* Topbar */}
         <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-border bg-card px-4 lg:px-6">
+          {/* Collapse sidebar button (desktop only) */}
+          <button
+            onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+            className="hidden lg:flex items-center justify-center h-8 w-8 rounded-lg hover:bg-muted transition-colors"
+            title={sidebarCollapsed ? 'Expandera meny' : 'Minimera meny'}
+          >
+            <Menu className="h-4 w-4 text-muted-foreground" />
+          </button>
+          
           <TopbarFilters />
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1">
             <NotificationBell />
-            <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-sm font-semibold cursor-pointer hover:opacity-90 transition-opacity">
+            <NavLink
+              to="/hq/settings"
+              className="flex items-center justify-center h-8 w-8 rounded-lg hover:bg-muted transition-colors"
+              title="Inställningar"
+            >
+              <Settings className="h-4 w-4 text-muted-foreground" />
+            </NavLink>
+            <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-sm font-semibold cursor-pointer hover:opacity-90 transition-opacity ml-1">
               {appUser?.email?.[0]?.toUpperCase() ?? 'U'}
             </div>
           </div>
