@@ -430,7 +430,7 @@ export default function IntegrationsPage() {
 
       {loading ? (
         <div className="grid gap-4 md:grid-cols-2">
-          {[1, 2, 3, 4].map((i) => (
+          {[1, 2].map((i) => (
             <Card key={i} className="animate-pulse">
               <CardHeader className="flex flex-row items-start gap-4 space-y-0">
                 <div className="w-12 h-12 rounded-lg bg-slate-200" />
@@ -446,23 +446,48 @@ export default function IntegrationsPage() {
           ))}
         </div>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2">
-          {providers.map((provider, index) => {
-            const integration = integrations.find((i) => i.provider === provider.id)
-            return (
-              <IntegrationCard
-                key={provider.id}
-                provider={provider}
-                integration={integration}
-                onConnect={() => handleConnect(provider.id)}
-                onDisconnect={() => handleDisconnect(provider.id)}
-                onRefresh={() => handleRefresh(provider.id)}
-                loading={actionLoading === provider.id}
-                stepNumber={index + 1}
-              />
-            )
-          })}
-        </div>
+        <>
+          {/* Available Integrations */}
+          <div className="grid gap-4 md:grid-cols-2">
+            {providers.filter(p => !p.comingSoon).map((provider, index) => {
+              const integration = integrations.find((i) => i.provider === provider.id)
+              return (
+                <IntegrationCard
+                  key={provider.id}
+                  provider={provider}
+                  integration={integration}
+                  onConnect={() => handleConnect(provider.id)}
+                  onDisconnect={() => handleDisconnect(provider.id)}
+                  onRefresh={() => handleRefresh(provider.id)}
+                  loading={actionLoading === provider.id}
+                  stepNumber={index + 1}
+                />
+              )
+            })}
+          </div>
+
+          {/* Roadmap Section */}
+          <section className="mt-8">
+            <h3 className="text-sm font-medium text-muted-foreground mb-3 uppercase tracking-wide">Roadmap</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 opacity-50">
+              {providers.filter(p => p.comingSoon).map((provider, index) => {
+                const integration = integrations.find((i) => i.provider === provider.id)
+                return (
+                  <IntegrationCard
+                    key={provider.id}
+                    provider={provider}
+                    integration={integration}
+                    onConnect={() => handleConnect(provider.id)}
+                    onDisconnect={() => handleDisconnect(provider.id)}
+                    onRefresh={() => handleRefresh(provider.id)}
+                    loading={actionLoading === provider.id}
+                    stepNumber={providers.filter(p => !p.comingSoon).length + index + 1}
+                  />
+                )
+              })}
+            </div>
+          </section>
+        </>
       )}
     </div>
   )

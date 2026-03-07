@@ -64,11 +64,13 @@ function formatDateKey(date: Date): string {
 }
 
 const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
-  active: { bg: 'bg-emerald-500/80', text: 'text-white' },
-  draft: { bg: 'bg-amber-400/80', text: 'text-amber-900' },
-  scheduled: { bg: 'bg-blue-500/80', text: 'text-white' },
-  completed: { bg: 'bg-slate-400/70', text: 'text-white' },
-  archived: { bg: 'bg-gray-300/70', text: 'text-gray-700' },
+  active: { bg: 'bg-emerald-500', text: 'text-white' },
+  draft: { bg: 'bg-amber-400', text: 'text-amber-900' },
+  planned: { bg: 'bg-blue-400', text: 'text-white' },
+  scheduled: { bg: 'bg-blue-400', text: 'text-white' },
+  completed: { bg: 'bg-slate-400', text: 'text-white' },
+  cancelled: { bg: 'bg-gray-300 opacity-50', text: 'text-gray-700' },
+  archived: { bg: 'bg-gray-300', text: 'text-gray-700' },
 }
 
 export default function CalendarPage() {
@@ -231,6 +233,13 @@ export default function CalendarPage() {
           <Button variant="outline" size="sm" onClick={goToNextMonth}>
             <ChevronRight className="w-4 h-4" />
           </Button>
+        </div>
+
+        {/* Status Legend */}
+        <div className="flex gap-4 text-xs text-muted-foreground mb-3 px-4">
+          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-emerald-500 inline-block"/>Aktiv</span>
+          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-blue-400 inline-block"/>Planerad</span>
+          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-amber-400 inline-block"/>Utkast</span>
         </div>
 
         {loading ? (

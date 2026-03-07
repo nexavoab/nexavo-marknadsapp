@@ -24,6 +24,13 @@ function getNotificationIcon(type: string) {
   }
 }
 
+const NOTIFICATION_STYLES: Record<string, string> = {
+  campaign_ready_for_approval: 'border-l-2 border-l-orange-400 bg-orange-50/50 dark:bg-orange-950/20',
+  campaign_reminder: 'border-l-2 border-l-amber-300 bg-amber-50/30 dark:bg-amber-950/20',
+  campaign_urgent: 'border-l-2 border-l-red-400 bg-red-50/50 dark:bg-red-950/20',
+  campaign_live: 'border-l-2 border-l-emerald-400 bg-emerald-50/50 dark:bg-emerald-950/20',
+};
+
 function formatTimeAgo(dateString: string): string {
   const date = new Date(dateString);
   const now = new Date();
@@ -141,7 +148,8 @@ export default function NotificationBell({ className }: NotificationBellProps) {
                     key={notification.id}
                     className={cn(
                       "px-4 py-3 hover:bg-accent/50 transition-colors cursor-pointer",
-                      !notification.read_at && "bg-blue-50 dark:bg-blue-950/20"
+                      !notification.read_at && "bg-blue-50 dark:bg-blue-950/20",
+                      NOTIFICATION_STYLES[notification.type]
                     )}
                     onClick={() => !notification.read_at && handleMarkAsRead(notification.id)}
                   >
