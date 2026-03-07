@@ -10,6 +10,7 @@ import {
   Palette,
   FolderOpen,
   Calendar,
+  CalendarRange,
   Users,
   Settings,
   LogOut,
@@ -36,6 +37,9 @@ import FranchiseesPage from './FranchiseesPage'
 import CalendarPage from './CalendarPage'
 import SettingsPage from './SettingsPage'
 
+// Annual plan
+import AnnualPlanPage from './annual-plan/AnnualPlanPage'
+
 // Internal test pages (no nav links)
 import AIPipelineTestPage from './AIPipelineTestPage'
 
@@ -45,6 +49,7 @@ const navItems = [
   { to: '/hq/brand', icon: Palette, label: 'Varumärke' },
   { to: '/hq/assets', icon: FolderOpen, label: 'Materialbank', disabled: true, badge: 'Snart' },
   { to: '/hq/calendar', icon: Calendar, label: 'Kalender' },
+  { to: '/hq/annual-plan', icon: CalendarRange, label: 'Årshjul' },
   { to: '/hq/franchisees', icon: Users, label: 'Franchisetagare' },
   { to: '/hq/settings', icon: Settings, label: 'Inställningar' },
 ]
@@ -244,6 +249,7 @@ export default function HQLayout() {
             {/* Other pages */}
             <Route path="assets" element={<PlaceholderPage title="Materialbank" />} />
             <Route path="calendar" element={<CalendarPage />} />
+            <Route path="annual-plan" element={<AnnualPlanPage />} />
             <Route path="franchisees" element={<FranchiseesPage />} />
             <Route path="settings" element={<SettingsPage />} />
             {/* Internal test pages - no nav links */}
