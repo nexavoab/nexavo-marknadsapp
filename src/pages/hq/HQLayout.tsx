@@ -18,7 +18,8 @@ import {
   X,
   ArrowRight,
   Search,
-  Bell
+  Bell,
+  ShieldCheck
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
