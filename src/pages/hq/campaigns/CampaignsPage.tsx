@@ -60,7 +60,7 @@ export default function CampaignsPage() {
   if (loading) {
     return (
       <div className="p-8 flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
+        <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
       </div>
     )
   }
@@ -68,9 +68,9 @@ export default function CampaignsPage() {
   if (error) {
     return (
       <div className="p-8">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3">
-          <AlertCircle className="w-5 h-5 text-red-500" />
-          <span className="text-red-700">{error}</span>
+        <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4 flex items-center gap-3">
+          <AlertCircle className="w-5 h-5 text-destructive" />
+          <span className="text-destructive">{error}</span>
         </div>
       </div>
     )
@@ -90,11 +90,11 @@ export default function CampaignsPage() {
       {/* Empty State */}
       {campaigns.length === 0 ? (
         <div className="text-center py-16">
-          <div className="w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-6">
-            <Megaphone className="w-10 h-10 text-blue-500" />
+          <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6">
+            <Megaphone className="w-10 h-10 text-primary" />
           </div>
           <h2 className="text-xl font-semibold mb-2">Inga kampanjer ännu</h2>
-          <p className="text-gray-500 mb-6 max-w-md mx-auto">
+          <p className="text-muted-foreground mb-6 max-w-md mx-auto">
             Skapa din första kampanj och låt AI hjälpa dig generera professionellt
             marknadsföringsmaterial på några minuter.
           </p>
@@ -140,11 +140,11 @@ function CampaignCard({ campaign, onClick }: CampaignCardProps) {
   return (
     <button
       onClick={onClick}
-      className="text-left bg-white rounded-xl border border-gray-200 p-5 hover:shadow-lg hover:border-blue-300 transition-all group"
+      className="text-left bg-card rounded-xl border border-border p-5 hover:shadow-lg hover:border-primary/50 transition-all group"
     >
       {/* Header */}
       <div className="flex items-start justify-between mb-3">
-        <h3 className="font-semibold text-lg group-hover:text-blue-600 transition-colors">
+        <h3 className="font-semibold text-lg group-hover:text-primary transition-colors">
           {campaign.name}
         </h3>
         <Badge className={cn('text-xs', statusConfig.className)}>
@@ -154,7 +154,7 @@ function CampaignCard({ campaign, onClick }: CampaignCardProps) {
 
       {/* Description */}
       {campaign.description && (
-        <p className="text-gray-500 text-sm line-clamp-2 mb-4">
+        <p className="text-muted-foreground text-sm line-clamp-2 mb-4">
           {campaign.description}
         </p>
       )}
@@ -176,7 +176,7 @@ function CampaignCard({ campaign, onClick }: CampaignCardProps) {
 
       {/* Dates */}
       {(campaign.start_date || campaign.end_date) && (
-        <div className="flex items-center gap-1 text-xs text-gray-400">
+        <div className="flex items-center gap-1 text-xs text-muted-foreground">
           <Calendar className="w-3 h-3" />
           <span>
             {formatDate(campaign.start_date)}

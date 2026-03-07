@@ -147,9 +147,9 @@ export default function FranchiseCampaignPage() {
           Tillbaka
         </Button>
         <div className="flex-1">
-          <h1 className="text-2xl font-bold text-gray-900">{campaign.name}</h1>
+          <h1 className="text-2xl font-bold text-foreground">{campaign.name}</h1>
           {campaign.description && (
-            <p className="text-gray-500 mt-1">{campaign.description}</p>
+            <p className="text-muted-foreground mt-1">{campaign.description}</p>
           )}
         </div>
       </div>
@@ -157,7 +157,7 @@ export default function FranchiseCampaignPage() {
       {/* Filter buttons */}
       {hasAssets && (
         <div className="flex flex-wrap gap-2">
-          <span className="text-sm text-gray-500 self-center mr-2">Filtrera:</span>
+          <span className="text-sm text-muted-foreground self-center mr-2">Filtrera:</span>
           {filterButtons.map((btn) => (
             <Button
               key={btn.value}
@@ -188,7 +188,7 @@ export default function FranchiseCampaignPage() {
 
             return (
               <div key={category}>
-                <h2 className="text-lg font-semibold text-gray-900 mb-4">
+                <h2 className="text-lg font-semibold text-foreground mb-4">
                   {CATEGORY_LABELS[category]}
                 </h2>
                 <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -223,9 +223,9 @@ function AssetCard({ asset, isDownloading, onDownload }: AssetCardProps) {
   const imageSrc = asset.thumbnail_url ?? asset.public_url ?? '/placeholder.png'
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
+    <div className="bg-card rounded-lg border border-border overflow-hidden hover:shadow-md transition-shadow">
       {/* Preview */}
-      <div className="aspect-video bg-gray-100 relative">
+      <div className="aspect-video bg-muted relative">
         {imageSrc && imageSrc !== '/placeholder.png' ? (
           <img
             src={imageSrc}
@@ -240,16 +240,16 @@ function AssetCard({ asset, isDownloading, onDownload }: AssetCardProps) {
           />
         ) : null}
         <div className={`absolute inset-0 flex items-center justify-center ${imageSrc && imageSrc !== '/placeholder.png' ? 'hidden' : ''}`}>
-          <ImageIcon className="w-12 h-12 text-gray-300" />
+          <ImageIcon className="w-12 h-12 text-muted-foreground" />
         </div>
       </div>
 
       {/* Info */}
       <div className="p-4">
-        <h3 className="font-medium text-gray-900 truncate">
+        <h3 className="font-medium text-foreground truncate">
           {formatInfo?.label ?? asset.name}
         </h3>
-        <div className="flex items-center gap-2 mt-1 text-sm text-gray-500">
+        <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground">
           {formatInfo && <span>{formatInfo.dimensions}</span>}
           {asset.mime_type && (
             <>
@@ -260,7 +260,7 @@ function AssetCard({ asset, isDownloading, onDownload }: AssetCardProps) {
         </div>
 
         <div className="flex items-center justify-between mt-4">
-          <span className="text-xs text-gray-400">
+          <span className="text-xs text-muted-foreground">
             {asset.download_count} nedladdning{asset.download_count !== 1 ? 'ar' : ''}
           </span>
           <Button

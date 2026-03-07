@@ -44,8 +44,8 @@ export default function FranchiseesPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Franchisetagare</h1>
-          <p className="text-gray-500 mt-1">
+          <h1 className="text-2xl font-bold text-foreground">Franchisetagare</h1>
+          <p className="text-muted-foreground mt-1">
             Hantera dina franchisetagare och deras åtkomst.
           </p>
         </div>
@@ -74,18 +74,18 @@ export default function FranchiseesPage() {
               className="p-4 flex items-center gap-4"
             >
               {/* Avatar placeholder */}
-              <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center">
-                <span className="text-slate-600 font-medium">
+              <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
+                <span className="text-muted-foreground font-medium">
                   {franchisee.name?.charAt(0).toUpperCase() || '?'}
                 </span>
               </div>
 
               {/* Info */}
               <div className="flex-1 min-w-0">
-                <div className="font-medium text-slate-900 truncate">
+                <div className="font-medium text-foreground truncate">
                   {franchisee.name}
                 </div>
-                <div className="flex items-center gap-4 text-sm text-gray-500 mt-0.5">
+                <div className="flex items-center gap-4 text-sm text-muted-foreground mt-0.5">
                   {franchisee.region && (
                     <span className="flex items-center gap-1">
                       <MapPin className="w-3 h-3" />

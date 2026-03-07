@@ -79,8 +79,8 @@ export default function SettingsPage() {
     <div className="p-8 space-y-6 max-w-2xl">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">Inställningar</h1>
-        <p className="text-gray-500 mt-1">
+        <h1 className="text-2xl font-bold text-foreground">Inställningar</h1>
+        <p className="text-muted-foreground mt-1">
           Hantera din profil och kontoinställningar.
         </p>
       </div>
@@ -88,7 +88,7 @@ export default function SettingsPage() {
       {/* Profile card */}
       <Card className="p-6 space-y-6">
         <div>
-          <h2 className="text-lg font-semibold text-slate-900 mb-4">Profil</h2>
+          <h2 className="text-lg font-semibold text-foreground mb-4">Profil</h2>
           
           <div className="space-y-4">
             {/* Name */}
@@ -109,9 +109,9 @@ export default function SettingsPage() {
                 id="email"
                 value={appUser?.email || ''}
                 disabled
-                className="bg-gray-50"
+                className="bg-muted"
               />
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-muted-foreground">
                 E-postadressen kan inte ändras.
               </p>
             </div>
@@ -119,7 +119,7 @@ export default function SettingsPage() {
             {/* Organization (read-only) */}
             <div className="space-y-2">
               <Label>Organisation</Label>
-              <div className="p-3 bg-gray-50 rounded-md text-slate-900">
+              <div className="p-3 bg-muted rounded-md text-foreground">
                 {organization?.name || 'Okänd'}
               </div>
             </div>
@@ -155,8 +155,8 @@ export default function SettingsPage() {
       <Card className="p-6">
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="font-medium text-slate-900">Logga ut</h3>
-            <p className="text-sm text-gray-500">
+            <h3 className="font-medium text-foreground">Logga ut</h3>
+            <p className="text-sm text-muted-foreground">
               Logga ut från ditt konto på denna enhet.
             </p>
           </div>

@@ -142,8 +142,8 @@ export default function CalendarPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Kalender</h1>
-          <p className="text-gray-500 mt-1">
+          <h1 className="text-2xl font-bold text-foreground">Kalender</h1>
+          <p className="text-muted-foreground mt-1">
             Översikt över kampanjer per månad.
           </p>
         </div>
@@ -179,7 +179,7 @@ export default function CalendarPage() {
               {WEEKDAYS.map((day) => (
                 <div
                   key={day}
-                  className="text-center text-sm font-medium text-gray-500 py-2"
+                  className="text-center text-sm font-medium text-muted-foreground py-2"
                 >
                   {day}
                 </div>
@@ -198,13 +198,13 @@ export default function CalendarPage() {
                     key={idx}
                     className={`
                       min-h-[80px] p-1 border rounded-md
-                      ${day.isCurrentMonth ? 'bg-white' : 'bg-gray-50'}
-                      ${isToday ? 'border-blue-500 border-2' : 'border-gray-200'}
+                      ${day.isCurrentMonth ? 'bg-card' : 'bg-muted'}
+                      ${isToday ? 'border-primary border-2' : 'border-border'}
                     `}
                   >
                     <div
                       className={`text-sm font-medium mb-1 ${
-                        day.isCurrentMonth ? 'text-slate-900' : 'text-gray-400'
+                        day.isCurrentMonth ? 'text-foreground' : 'text-muted-foreground'
                       }`}
                     >
                       {day.date.getDate()}
@@ -225,7 +225,7 @@ export default function CalendarPage() {
                         </button>
                       ))}
                       {dayCampaigns.length > 2 && (
-                        <div className="text-xs text-gray-500">
+                        <div className="text-xs text-muted-foreground">
                           +{dayCampaigns.length - 2} till
                         </div>
                       )}

@@ -8,21 +8,21 @@ export default function FranchiseLayout() {
   const { appUser, signOut } = useAuth()
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       {/* Enkel header */}
-      <header className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between sticky top-0 z-10">
+      <header className="bg-card border-b border-border px-6 py-4 flex items-center justify-between sticky top-0 z-10">
         <div className="flex items-center gap-3">
           {/* Logo placeholder — läses från brand när vi har det */}
           <div className="w-8 h-8 bg-slate-900 rounded-lg flex items-center justify-center">
             <Megaphone className="w-4 h-4 text-white" />
           </div>
-          <span className="font-semibold text-gray-900">Materialportal</span>
+          <span className="font-semibold text-foreground">Materialportal</span>
         </div>
         <div className="flex items-center gap-4">
-          <span className="text-sm text-gray-500">{appUser?.name ?? appUser?.email}</span>
+          <span className="text-sm text-muted-foreground">{appUser?.name ?? appUser?.email}</span>
           <button
             onClick={signOut}
-            className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-900 transition-colors"
+            className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
           >
             <LogOut className="w-4 h-4" />
             Logga ut
