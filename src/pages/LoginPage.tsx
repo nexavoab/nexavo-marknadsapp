@@ -27,10 +27,11 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-sm max-w-[400px]">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-primary/10 to-background p-4">
+      <Card className="w-full max-w-[400px] border border-border shadow-lg">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold">Nexavo Marknadsapp</CardTitle>
+          <div className="text-3xl font-bold text-primary tracking-tight mb-2">Nexavo</div>
+          <CardTitle className="text-xl font-semibold">Marknadsapp</CardTitle>
           <CardDescription>Logga in för att fortsätta</CardDescription>
         </CardHeader>
         <CardContent>
@@ -64,6 +65,13 @@ export default function LoginPage() {
                 aria-describedby={error ? 'login-error' : undefined}
                 className="min-h-[36px]"
               />
+              <button
+                type="button"
+                className="text-sm text-primary hover:underline mt-1"
+                onClick={() => {/* TODO: implement forgot password */}}
+              >
+                Glömt lösenord?
+              </button>
             </div>
             {error && (
               <div
