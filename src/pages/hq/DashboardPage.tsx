@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { supabase } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { Palette, Users, Plus, Megaphone, Download, FolderOpen } from 'lucide-react'
+import { Palette, Users, Plus, Megaphone, Download, FolderOpen, Inbox } from 'lucide-react'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
@@ -47,6 +47,9 @@ function StatCard({
   trendLabel?: string
   icon?: React.ElementType
 }) {
+  // Show 0 if value is null after loading completes
+  const displayValue = loading ? null : (value ?? 0)
+  
   return (
     <Card className="p-5 border border-border/60 shadow-sm rounded-xl">
       <div className="flex items-center justify-between mb-4">
@@ -57,10 +60,10 @@ function StatCard({
           </div>
         )}
       </div>
-      {loading || value === null ? (
+      {displayValue === null ? (
         <div className="h-8 w-24 bg-muted animate-pulse rounded mb-2" />
       ) : (
-        <div className="text-3xl font-bold text-foreground">{value}</div>
+        <div className="text-3xl font-bold text-foreground">{displayValue}</div>
       )}
       {trendLabel && (
         <p className={cn(
