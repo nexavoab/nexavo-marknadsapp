@@ -20,8 +20,13 @@ import {
   Archive,
   Play,
   Pause,
+  Layers,
+  Image,
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { LocalVariantsTab } from '@/components/campaigns/LocalVariantsTab'
+
+type TabType = 'assets' | 'variants'
 
 const STATUS_CONFIG: Record<CampaignStatus, { label: string; className: string }> = {
   draft: { label: 'Utkast', className: 'bg-muted text-muted-foreground' },
@@ -41,6 +46,7 @@ export default function CampaignDetailPage() {
   const [assets, setAssets] = useState<Asset[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [activeTab, setActiveTab] = useState<TabType>('assets')
 
   useEffect(() => {
     if (id) loadCampaign(id)
@@ -157,21 +163,56 @@ export default function CampaignDetailPage() {
         </div>
       </div>
 
-      {/* Assets Grid */}
-      <div>
-        <h2 className="text-lg font-semibold mb-4">Material ({assets.length})</h2>
-        {assets.length === 0 ? (
-          <div className="bg-muted rounded-lg p-8 text-center text-muted-foreground">
-            Inga assets kopplade till denna kampanj ännu.
-          </div>
-        ) : (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {assets.map((asset) => (
-              <AssetCard key={asset.id} asset={asset} />
-            ))}
-          </div>
-        )}
+      {/* Tabs */}
+      <div className="mb-6">
+        <div className="flex gap-1 border-b border-border">
+          <button
+            className={cn(
+              'px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors flex items-center gap-2',
+              activeTab === 'assets'
+                ? 'border-primary text-primary'
+                : 'border-transparent text-muted-foreground hover:text-foreground'
+            )}
+            onClick={() => setActiveTab('assets')}
+          >
+            <Image className="w-4 h-4" />
+            Material ({assets.length})
+          </button>
+          <button
+            className={cn(
+              'px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors flex items-center gap-2',
+              activeTab === 'variants'
+                ? 'border-primary text-primary'
+                : 'border-transparent text-muted-foreground hover:text-foreground'
+            )}
+            onClick={() => setActiveTab('variants')}
+          >
+            <Layers className="w-4 h-4" />
+            Lokala varianter
+          </button>
+        </div>
       </div>
+
+      {/* Tab Content */}
+      {activeTab === 'assets' && (
+        <div>
+          {assets.length === 0 ? (
+            <div className="bg-muted rounded-lg p-8 text-center text-muted-foreground">
+              Inga assets kopplade till denna kampanj ännu.
+            </div>
+          ) : (
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {assets.map((asset) => (
+                <AssetCard key={asset.id} asset={asset} />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {activeTab === 'variants' && (
+        <LocalVariantsTab campaignId={campaign.id} assets={assets} />
+      )}
     </div>
   )
 }
