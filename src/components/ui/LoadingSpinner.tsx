@@ -4,7 +4,7 @@ export function LoadingSpinner({ size = 'md' }: { size?: 'sm' | 'md' | 'lg' }) {
     <div
       role="status"
       aria-label="Laddar..."
-      className={`animate-spin rounded-full border-b-2 border-slate-900 ${s}`}
+      className={`animate-spin rounded-full border-b-2 border-foreground ${s}`}
     />
   )
 }

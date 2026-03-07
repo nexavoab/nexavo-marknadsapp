@@ -208,7 +208,7 @@ export default function BrandSetupPage() {
   if (brandLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-slate-900" />
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-foreground" />
       </div>
     )
   }
@@ -220,7 +220,7 @@ export default function BrandSetupPage() {
         <h1 className="text-2xl font-bold mb-2">
           {isEditMode ? 'Redigera varumärke' : 'Sätt upp ert varumärke'}
         </h1>
-        <p className="text-slate-600">
+        <p className="text-muted-foreground">
           {isEditMode 
             ? 'Uppdatera era varumärkesinställningar'
             : 'Välkommen! Låt oss börja med att sätta upp ert varumärke. Detta är grunden för all AI-generering.'
@@ -237,10 +237,10 @@ export default function BrandSetupPage() {
                 className={cn(
                   'flex items-center justify-center w-10 h-10 rounded-full transition-colors',
                   currentStep === step.id
-                    ? 'bg-blue-600 text-white'
+                    ? 'bg-primary text-white'
                     : currentStep > step.id
                     ? 'bg-green-600 text-white'
-                    : 'bg-slate-200 text-slate-500'
+                    : 'bg-muted text-muted-foreground'
                 )}
               >
                 {currentStep > step.id ? (
@@ -253,7 +253,7 @@ export default function BrandSetupPage() {
                 <div
                   className={cn(
                     'w-16 lg:w-24 h-1 mx-2',
-                    currentStep > step.id ? 'bg-green-600' : 'bg-slate-200'
+                    currentStep > step.id ? 'bg-green-600' : 'bg-muted'
                   )}
                 />
               )}
@@ -266,7 +266,7 @@ export default function BrandSetupPage() {
               key={step.id}
               className={cn(
                 'text-xs font-medium',
-                currentStep === step.id ? 'text-blue-600' : 'text-slate-500'
+                currentStep === step.id ? 'text-primary' : 'text-muted-foreground'
               )}
             >
               {step.title}
@@ -319,9 +319,9 @@ export default function BrandSetupPage() {
                       </button>
                     </div>
                   ) : (
-                    <label className="flex flex-col items-center justify-center w-32 h-20 border-2 border-dashed rounded-lg cursor-pointer hover:bg-slate-50">
-                      <Upload className="w-6 h-6 text-slate-400" />
-                      <span className="text-xs text-slate-500 mt-1">
+                    <label className="flex flex-col items-center justify-center w-32 h-20 border-2 border-dashed rounded-lg cursor-pointer hover:bg-muted/50">
+                      <Upload className="w-6 h-6 text-muted-foreground" />
+                      <span className="text-xs text-muted-foreground mt-1">
                         {uploadingLogo ? 'Laddar...' : 'Välj fil'}
                       </span>
                       <input
@@ -355,9 +355,9 @@ export default function BrandSetupPage() {
                       </button>
                     </div>
                   ) : (
-                    <label className="flex flex-col items-center justify-center w-32 h-20 border-2 border-dashed rounded-lg cursor-pointer hover:bg-slate-50">
-                      <Upload className="w-6 h-6 text-slate-400" />
-                      <span className="text-xs text-slate-500 mt-1">
+                    <label className="flex flex-col items-center justify-center w-32 h-20 border-2 border-dashed rounded-lg cursor-pointer hover:bg-muted/50">
+                      <Upload className="w-6 h-6 text-muted-foreground" />
+                      <span className="text-xs text-muted-foreground mt-1">
                         {uploadingDarkLogo ? 'Laddar...' : 'Välj fil'}
                       </span>
                       <input
@@ -580,7 +580,7 @@ export default function BrandSetupPage() {
             <>
               <div className="space-y-2">
                 <Label>Förbjudna ord</Label>
-                <p className="text-sm text-slate-500">Ord som AI aldrig ska använda</p>
+                <p className="text-sm text-muted-foreground">Ord som AI aldrig ska använda</p>
                 <div className="flex gap-2">
                   <Input
                     value={newForbiddenWord}
@@ -617,7 +617,7 @@ export default function BrandSetupPage() {
 
               <div className="space-y-2">
                 <Label>Obligatoriska disclaimers</Label>
-                <p className="text-sm text-slate-500">Texter som alltid ska inkluderas i visst innehåll</p>
+                <p className="text-sm text-muted-foreground">Texter som alltid ska inkluderas i visst innehåll</p>
                 <div className="flex gap-2">
                   <Input
                     value={newDisclaimer}
@@ -654,7 +654,7 @@ export default function BrandSetupPage() {
 
               <div className="space-y-2">
                 <Label>Förbjudna bildstilstyper</Label>
-                <p className="text-sm text-slate-500">Bildstilstyper som AI inte ska generera</p>
+                <p className="text-sm text-muted-foreground">Bildstilstyper som AI inte ska generera</p>
                 <div className="flex gap-2">
                   <Input
                     value={newImageStyle}

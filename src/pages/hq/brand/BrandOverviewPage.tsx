@@ -11,6 +11,7 @@ import {
   Shield,
   AlertCircle
 } from 'lucide-react'
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 
 const TONE_LABELS = {
   formality: { low: 'Formell', high: 'Avslappnad' },
@@ -26,7 +27,7 @@ export default function BrandOverviewPage() {
   if (loading) {
     return (
       <div className="p-8 flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-slate-900" />
+        <LoadingSpinner size="lg" />
       </div>
     )
   }
@@ -34,9 +35,9 @@ export default function BrandOverviewPage() {
   if (error) {
     return (
       <div className="p-8">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3">
-          <AlertCircle className="w-5 h-5 text-red-500" />
-          <span className="text-red-700">{error}</span>
+        <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4 flex items-center gap-3">
+          <AlertCircle className="w-5 h-5 text-destructive" />
+          <span className="text-destructive">{error}</span>
         </div>
       </div>
     )
@@ -47,7 +48,7 @@ export default function BrandOverviewPage() {
       <div className="p-8">
         <div className="text-center py-12">
           <h2 className="text-xl font-semibold mb-2">Inget varumärke uppsatt</h2>
-          <p className="text-slate-600 mb-4">
+          <p className="text-muted-foreground mb-4">
             Sätt upp ert varumärke för att komma igång med AI-generering
           </p>
           <Button onClick={() => navigate('/hq/brand/setup')}>
@@ -64,7 +65,7 @@ export default function BrandOverviewPage() {
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-2xl font-bold mb-1">{brand.name}</h1>
-          <p className="text-slate-600">Ert varumärke</p>
+          <p className="text-muted-foreground">Ert varumärke</p>
         </div>
         <Button onClick={() => navigate('/hq/brand/setup?edit=true')}>
           <Edit className="w-4 h-4 mr-2" />
@@ -84,7 +85,7 @@ export default function BrandOverviewPage() {
             <div className="flex gap-8">
               {/* Light background */}
               <div className="space-y-2">
-                <p className="text-sm text-slate-500">På ljus bakgrund</p>
+                <p className="text-sm text-muted-foreground">På ljus bakgrund</p>
                 <div className="w-48 h-32 bg-white border rounded-lg flex items-center justify-center p-4">
                   {brand.logos?.primary_url ? (
                     <img
@@ -93,14 +94,14 @@ export default function BrandOverviewPage() {
                       className="max-w-full max-h-full object-contain"
                     />
                   ) : (
-                    <span className="text-slate-400 text-sm">Ingen logotyp</span>
+                    <span className="text-muted-foreground text-sm">Ingen logotyp</span>
                   )}
                 </div>
               </div>
 
               {/* Dark background */}
               <div className="space-y-2">
-                <p className="text-sm text-slate-500">På mörk bakgrund</p>
+                <p className="text-sm text-muted-foreground">På mörk bakgrund</p>
                 <div className="w-48 h-32 bg-slate-800 border rounded-lg flex items-center justify-center p-4">
                   {brand.logos?.dark_bg_url || brand.logos?.primary_url ? (
                     <img
@@ -109,7 +110,7 @@ export default function BrandOverviewPage() {
                       className="max-w-full max-h-full object-contain"
                     />
                   ) : (
-                    <span className="text-slate-400 text-sm">Ingen logotyp</span>
+                    <span className="text-muted-foreground text-sm">Ingen logotyp</span>
                   )}
                 </div>
               </div>
@@ -134,7 +135,7 @@ export default function BrandOverviewPage() {
                     style={{ backgroundColor: brand.colors.primary }}
                   />
                   <p className="text-sm font-medium">Primär</p>
-                  <p className="text-xs text-slate-500 font-mono">{brand.colors.primary}</p>
+                  <p className="text-xs text-muted-foreground font-mono">{brand.colors.primary}</p>
                 </div>
               )}
               {brand.colors?.secondary && (
@@ -144,7 +145,7 @@ export default function BrandOverviewPage() {
                     style={{ backgroundColor: brand.colors.secondary }}
                   />
                   <p className="text-sm font-medium">Sekundär</p>
-                  <p className="text-xs text-slate-500 font-mono">{brand.colors.secondary}</p>
+                  <p className="text-xs text-muted-foreground font-mono">{brand.colors.secondary}</p>
                 </div>
               )}
               {brand.colors?.accent && (
@@ -154,7 +155,7 @@ export default function BrandOverviewPage() {
                     style={{ backgroundColor: brand.colors.accent }}
                   />
                   <p className="text-sm font-medium">Accent</p>
-                  <p className="text-xs text-slate-500 font-mono">{brand.colors.accent}</p>
+                  <p className="text-xs text-muted-foreground font-mono">{brand.colors.accent}</p>
                 </div>
               )}
             </div>
@@ -172,18 +173,18 @@ export default function BrandOverviewPage() {
           <CardContent>
             <div className="grid grid-cols-2 gap-6">
               <div>
-                <p className="text-sm text-slate-500 mb-1">Rubriker</p>
+                <p className="text-sm text-muted-foreground mb-1">Rubriker</p>
                 <p className="text-lg font-semibold">{brand.typography?.heading_font || 'Ej angivet'}</p>
               </div>
               <div>
-                <p className="text-sm text-slate-500 mb-1">Brödtext</p>
+                <p className="text-sm text-muted-foreground mb-1">Brödtext</p>
                 <p className="text-lg">{brand.typography?.body_font || 'Ej angivet'}</p>
               </div>
             </div>
             {brand.typography?.google_fonts_url && (
               <div className="mt-4 pt-4 border-t">
-                <p className="text-sm text-slate-500 mb-1">Google Fonts URL</p>
-                <p className="text-xs font-mono text-slate-600 break-all">
+                <p className="text-sm text-muted-foreground mb-1">Google Fonts URL</p>
+                <p className="text-xs font-mono text-muted-foreground break-all">
                   {brand.typography.google_fonts_url}
                 </p>
               </div>
@@ -203,16 +204,16 @@ export default function BrandOverviewPage() {
                 return (
                   <div key={key} className="space-y-1">
                     <div className="flex justify-between text-sm">
-                      <span className="text-slate-600">{labels.low}</span>
-                      <span className="text-slate-600">{labels.high}</span>
+                      <span className="text-muted-foreground">{labels.low}</span>
+                      <span className="text-muted-foreground">{labels.high}</span>
                     </div>
-                    <div className="relative h-2 bg-slate-200 rounded-full">
+                    <div className="relative h-2 bg-muted rounded-full">
                       <div
-                        className="absolute left-0 top-0 h-full bg-blue-500 rounded-full"
+                        className="absolute left-0 top-0 h-full bg-primary rounded-full"
                         style={{ width: `${value * 100}%` }}
                       />
                       <div
-                        className="absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-blue-600 rounded-full border-2 border-white shadow"
+                        className="absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-primary rounded-full border-2 border-white shadow"
                         style={{ left: `calc(${value * 100}% - 8px)` }}
                       />
                     </div>
@@ -244,7 +245,7 @@ export default function BrandOverviewPage() {
                   ))}
                 </div>
               ) : (
-                <p className="text-sm text-slate-500">Inga förbjudna ord angivna</p>
+                <p className="text-sm text-muted-foreground">Inga förbjudna ord angivna</p>
               )}
             </div>
 
@@ -262,7 +263,7 @@ export default function BrandOverviewPage() {
                   ))}
                 </div>
               ) : (
-                <p className="text-sm text-slate-500">Inga obligatoriska disclaimers angivna</p>
+                <p className="text-sm text-muted-foreground">Inga obligatoriska disclaimers angivna</p>
               )}
             </div>
 
@@ -280,7 +281,7 @@ export default function BrandOverviewPage() {
                   ))}
                 </div>
               ) : (
-                <p className="text-sm text-slate-500">Inga förbjudna bildstilstyper angivna</p>
+                <p className="text-sm text-muted-foreground">Inga förbjudna bildstilstyper angivna</p>
               )}
             </div>
           </CardContent>

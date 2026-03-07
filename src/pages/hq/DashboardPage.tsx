@@ -28,8 +28,8 @@ const STATUS_STYLES: Record<CampaignStatus, { color: string; icon: string; label
   active: { color: 'text-green-600', icon: '🟢', label: 'aktiv' },
   draft: { color: 'text-yellow-600', icon: '🟡', label: 'utkast' },
   scheduled: { color: 'text-blue-600', icon: '🔵', label: 'schemalagd' },
-  completed: { color: 'text-gray-600', icon: '✅', label: 'klar' },
-  archived: { color: 'text-gray-400', icon: '📦', label: 'arkiverad' },
+  completed: { color: 'text-muted-foreground', icon: '✅', label: 'klar' },
+  archived: { color: 'text-muted-foreground', icon: '📦', label: 'arkiverad' },
 }
 
 function StatCard({ 
@@ -58,7 +58,7 @@ function StatCard({
         )}
       </div>
       {loading || value === null ? (
-        <div className="h-8 w-24 bg-gray-200 animate-pulse rounded mb-2" />
+        <div className="h-8 w-24 bg-muted animate-pulse rounded mb-2" />
       ) : (
         <div className="text-3xl font-bold text-foreground">{value}</div>
       )}
@@ -354,23 +354,23 @@ export default function DashboardPage() {
 
       {/* Recent campaigns */}
       <div>
-        <h2 className="text-lg font-semibold text-slate-900 mb-4">
+        <h2 className="text-lg font-semibold text-foreground mb-4">
           Senaste kampanjer
         </h2>
-        <Card className="divide-y divide-gray-100">
+        <Card className="divide-y divide-border">
           {loading ? (
             // Loading skeleton
             Array.from({ length: 3 }).map((_, i) => (
               <div key={i} className="p-4 flex items-center gap-4">
-                <div className="h-5 w-5 bg-gray-200 animate-pulse rounded" />
+                <div className="h-5 w-5 bg-muted animate-pulse rounded" />
                 <div className="flex-1">
-                  <div className="h-4 w-48 bg-gray-200 animate-pulse rounded mb-1" />
-                  <div className="h-3 w-24 bg-gray-100 animate-pulse rounded" />
+                  <div className="h-4 w-48 bg-muted animate-pulse rounded mb-1" />
+                  <div className="h-3 w-24 bg-muted/60 animate-pulse rounded" />
                 </div>
               </div>
             ))
           ) : recentCampaigns.length === 0 ? (
-            <div className="p-8 text-center text-gray-500">
+            <div className="p-8 text-center text-muted-foreground">
               Inga kampanjer än. Skapa din första!
             </div>
           ) : (
@@ -379,12 +379,12 @@ export default function DashboardPage() {
               return (
                 <button
                   key={campaign.id}
-                  className="w-full p-4 flex items-center gap-4 hover:bg-gray-50 transition-colors text-left"
+                  className="w-full p-4 flex items-center gap-4 hover:bg-muted/50 transition-colors text-left"
                   onClick={() => navigate(`/hq/campaigns/${campaign.id}`)}
                 >
                   <span className="text-lg">{style.icon}</span>
                   <div className="flex-1">
-                    <div className="font-medium text-slate-900">
+                    <div className="font-medium text-foreground">
                       {campaign.name}
                     </div>
                     <div className={`text-sm ${style.color}`}>

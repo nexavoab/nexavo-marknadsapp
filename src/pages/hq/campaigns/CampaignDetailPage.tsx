@@ -24,11 +24,11 @@ import {
 import { toast } from 'sonner'
 
 const STATUS_CONFIG: Record<CampaignStatus, { label: string; className: string }> = {
-  draft: { label: 'Utkast', className: 'bg-gray-100 text-gray-700' },
+  draft: { label: 'Utkast', className: 'bg-muted text-muted-foreground' },
   scheduled: { label: 'Schemalagd', className: 'bg-yellow-100 text-yellow-800' },
   active: { label: 'Aktiv', className: 'bg-green-100 text-green-800' },
   completed: { label: 'Avslutad', className: 'bg-blue-100 text-blue-800' },
-  archived: { label: 'Arkiverad', className: 'bg-gray-100 text-gray-500' },
+  archived: { label: 'Arkiverad', className: 'bg-muted text-muted-foreground' },
 }
 
 export default function CampaignDetailPage() {
@@ -83,7 +83,7 @@ export default function CampaignDetailPage() {
   if (loading) {
     return (
       <div className="p-8 flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
+        <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
       </div>
     )
   }
@@ -95,9 +95,9 @@ export default function CampaignDetailPage() {
           <ChevronLeft className="w-4 h-4 mr-1" />
           Tillbaka
         </Button>
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3">
-          <AlertCircle className="w-5 h-5 text-red-500" />
-          <span className="text-red-700">{error || 'Kampanjen hittades inte'}</span>
+        <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4 flex items-center gap-3">
+          <AlertCircle className="w-5 h-5 text-destructive" />
+          <span className="text-destructive">{error || 'Kampanjen hittades inte'}</span>
         </div>
       </div>
     )
@@ -123,10 +123,10 @@ export default function CampaignDetailPage() {
             </Badge>
           </div>
           {campaign.description && (
-            <p className="text-gray-500">{campaign.description}</p>
+            <p className="text-muted-foreground">{campaign.description}</p>
           )}
           {(campaign.start_date || campaign.end_date) && (
-            <div className="flex items-center gap-2 mt-2 text-sm text-gray-400">
+            <div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
               <Calendar className="w-4 h-4" />
               {campaign.start_date && new Date(campaign.start_date).toLocaleDateString('sv-SE')}
               {campaign.end_date && ` → ${new Date(campaign.end_date).toLocaleDateString('sv-SE')}`}
@@ -161,7 +161,7 @@ export default function CampaignDetailPage() {
       <div>
         <h2 className="text-lg font-semibold mb-4">Material ({assets.length})</h2>
         {assets.length === 0 ? (
-          <div className="bg-gray-50 rounded-lg p-8 text-center text-gray-500">
+          <div className="bg-muted rounded-lg p-8 text-center text-muted-foreground">
             Inga assets kopplade till denna kampanj ännu.
           </div>
         ) : (
@@ -186,10 +186,10 @@ function AssetCard({ asset }: AssetCardProps) {
   const isImage = asset.type === 'image' || asset.type === 'composite'
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+    <div className="bg-card rounded-lg border border-border overflow-hidden">
       {/* Preview */}
       {isImage && asset.public_url ? (
-        <div className="aspect-video bg-gray-100 relative">
+        <div className="aspect-video bg-muted relative">
           <img
             src={asset.public_url}
             alt={asset.name}
@@ -197,7 +197,7 @@ function AssetCard({ asset }: AssetCardProps) {
           />
         </div>
       ) : (
-        <div className="aspect-video bg-gray-100 flex items-center justify-center">
+        <div className="aspect-video bg-muted flex items-center justify-center">
           <span className="text-4xl">📄</span>
         </div>
       )}
@@ -206,14 +206,14 @@ function AssetCard({ asset }: AssetCardProps) {
       <div className="p-4">
         <h3 className="font-medium truncate">{asset.name}</h3>
         <div className="flex items-center justify-between mt-2">
-          <span className="text-xs text-gray-400">
+          <span className="text-xs text-muted-foreground">
             {asset.format || asset.type}
           </span>
           {asset.public_url && (
             <a
               href={asset.public_url}
               download
-              className="text-blue-600 hover:text-blue-800"
+              className="text-primary hover:text-primary/80"
             >
               <Download className="w-4 h-4" />
             </a>
