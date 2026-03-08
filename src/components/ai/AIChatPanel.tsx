@@ -128,7 +128,7 @@ export default function AIChatPanel() {
           'fixed bottom-6 right-6 z-[9999] flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-all hover:scale-105 hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2',
           isOpen && 'hidden'
         )}
-        title="Öppna AI-assistenten"
+        title="AI-assistent"
       >
         <Sparkles className="h-6 w-6" />
       </button>

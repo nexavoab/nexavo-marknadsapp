@@ -502,11 +502,8 @@ function HQLayoutInner() {
         </header>
 
         <main id="main-content" className="flex-1">
-        {showOnboarding ? (
-          <OnboardingPrompt />
-        ) : (
           <Routes>
-            <Route index element={<DashboardPage />} />
+            <Route index element={showOnboarding ? <OnboardingPrompt /> : <DashboardPage />} />
             {/* Campaign routes */}
             <Route path="campaigns" element={<CampaignsPage />} />
             <Route path="campaigns/new" element={<CampaignNewPage />} />
@@ -529,7 +526,6 @@ function HQLayoutInner() {
             {/* 404 catch-all */}
             <Route path="*" element={<NotFoundPage />} />
           </Routes>
-        )}
         </main>
       </div>
 
