@@ -164,6 +164,12 @@ export default function CampaignDetailPage() {
   const handleArchive = async () => {
     if (!campaign) return
 
+    // Bekräftelse-dialog innan arkivering
+    const confirmed = window.confirm(
+      `Är du säker på att du vill arkivera kampanjen "${campaign.name}"?\n\nArkiverade kampanjer kan inte redigeras.`
+    )
+    if (!confirmed) return
+
     try {
       await archiveCampaign(campaign.id)
       setCampaign({ ...campaign, status: 'archived' })
@@ -504,6 +510,55 @@ function EditCampaignModal({ editForm, setEditForm, onSave, onClose, isSaving }:
                 value={editForm.end_date || ''}
                 onChange={(e) => setEditForm({ ...editForm, end_date: e.target.value || null })}
               />
+            </div>
+          </div>
+
+          {/* Target Persona */}
+          <div>
+            <label className="block text-sm font-medium mb-2">Målgrupp / Persona</label>
+            <div className="space-y-3 p-3 bg-muted/50 rounded-lg">
+              <div>
+                <label className="block text-xs text-muted-foreground mb-1">Namn</label>
+                <Input
+                  value={(editForm.target_persona as Record<string, string>)?.name || ''}
+                  onChange={(e) => setEditForm({
+                    ...editForm,
+                    target_persona: {
+                      ...(editForm.target_persona as Record<string, string> || {}),
+                      name: e.target.value
+                    }
+                  })}
+                  placeholder="t.ex. Sara"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-muted-foreground mb-1">Ålder</label>
+                <Input
+                  value={(editForm.target_persona as Record<string, string>)?.age || ''}
+                  onChange={(e) => setEditForm({
+                    ...editForm,
+                    target_persona: {
+                      ...(editForm.target_persona as Record<string, string> || {}),
+                      age: e.target.value
+                    }
+                  })}
+                  placeholder="t.ex. 35-45"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-muted-foreground mb-1">Intressen</label>
+                <Input
+                  value={(editForm.target_persona as Record<string, string>)?.interests || ''}
+                  onChange={(e) => setEditForm({
+                    ...editForm,
+                    target_persona: {
+                      ...(editForm.target_persona as Record<string, string> || {}),
+                      interests: e.target.value
+                    }
+                  })}
+                  placeholder="t.ex. hälsa, träning, familj"
+                />
+              </div>
             </div>
           </div>
 
