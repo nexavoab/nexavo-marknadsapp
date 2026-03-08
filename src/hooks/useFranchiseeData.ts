@@ -69,13 +69,22 @@ export function useFranchiseeData() {
 
   async function updateCampaignStatus(
     campaignId: string,
-    status: CampaignStatus
+    status: CampaignStatus,
+    rejectionComment?: string
   ): Promise<boolean> {
     if (!appUser?.organization_id) return false
 
+    const updatePayload: Record<string, unknown> = {
+      status,
+      updated_at: new Date().toISOString(),
+    }
+    if (rejectionComment !== undefined) {
+      updatePayload.rejection_comment = rejectionComment
+    }
+
     const { error } = await supabase
       .from('campaigns')
-      .update({ status, updated_at: new Date().toISOString() })
+      .update(updatePayload)
       .eq('id', campaignId)
       .eq('organization_id', appUser.organization_id)
 
@@ -92,6 +101,28 @@ export function useFranchiseeData() {
     return true
   }
 
+  async function saveLocalCustomization(
+    campaignId: string,
+    customization: { phone?: string; city?: string; contactName?: string }
+  ): Promise<boolean> {
+    if (!appUser?.organization_id) return false
+
+    const { error } = await supabase
+      .from('campaigns')
+      .update({
+        local_customization: customization,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', campaignId)
+      .eq('organization_id', appUser.organization_id)
+
+    if (error) {
+      console.error('Failed to save local customization:', error)
+      return false
+    }
+    return true
+  }
+
   async function incrementDownload(assetId: string): Promise<void> {
     await supabase.rpc('increment_download_count', { asset_id: assetId })
   }
@@ -105,6 +136,7 @@ export function useFranchiseeData() {
     fetchCampaignAssets,
     fetchCampaignById,
     updateCampaignStatus,
+    saveLocalCustomization,
     incrementDownload,
   }
 }

@@ -18,6 +18,7 @@ const CHANNEL_ICONS: Record<CampaignChannel, string> = {
   print: '🖨️',
   display: '📺',
   email: '📧',
+  print_flyer: '🖨️',
 }
 
 const STATUS_CONFIG: Record<CampaignStatus, { variant: 'default' | 'secondary' | 'destructive' | 'outline'; label: string }> = {

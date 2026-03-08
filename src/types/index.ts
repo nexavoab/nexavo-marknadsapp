@@ -65,7 +65,7 @@ export interface Brand {
 }
 
 export type CampaignStatus = 'draft' | 'scheduled' | 'active' | 'completed' | 'archived' | 'approved' | 'rejected' | 'pending_approval'
-export type CampaignChannel = 'facebook' | 'instagram' | 'linkedin' | 'tiktok' | 'google' | 'print' | 'display' | 'email'
+export type CampaignChannel = 'facebook' | 'instagram' | 'linkedin' | 'tiktok' | 'google' | 'print' | 'display' | 'email' | 'print_flyer'
 
 export interface Campaign {
   id: string
@@ -82,6 +82,8 @@ export interface Campaign {
   created_by?: string
   created_at: string
   updated_at: string
+  rejection_comment?: string
+  local_customization?: { phone?: string; city?: string; contactName?: string }
 }
 
 export type TemplateFormat =

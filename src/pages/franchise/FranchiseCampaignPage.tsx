@@ -17,7 +17,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { toast } from 'sonner'
-import type { Campaign, Asset, TemplateFormat } from '@/types'
+import type { Campaign, Asset, TemplateFormat, CampaignStatus } from '@/types'
 import {
   ArrowLeft,
   CheckCircle2,
@@ -48,7 +48,7 @@ const CHANNEL_ICONS: Record<string, string> = {
 export default function FranchiseCampaignPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const { fetchCampaignById, fetchCampaignAssets, updateCampaignStatus } = useFranchiseeData()
+  const { fetchCampaignById, fetchCampaignAssets, updateCampaignStatus, saveLocalCustomization } = useFranchiseeData()
 
   const [campaign, setCampaign] = useState<Campaign | null>(null)
   const [assets, setAssets] = useState<Asset[]>([])
@@ -81,6 +81,15 @@ export default function FranchiseCampaignPage() {
         setCampaign(campaignData)
         setAssets(assetsData)
         
+        // Läs in sparad lokal anpassning från DB
+        if (campaignData?.local_customization && Object.keys(campaignData.local_customization).length > 0) {
+          setCustomization({
+            phone: campaignData.local_customization.phone || '',
+            city: campaignData.local_customization.city || '',
+            contactName: campaignData.local_customization.contactName || '',
+          })
+        }
+
         // Set first asset's format as default
         if (assetsData.length > 0 && assetsData[0].format) {
           setSelectedFormat(assetsData[0].format)
@@ -101,9 +110,13 @@ export default function FranchiseCampaignPage() {
     
     setIsApproving(true)
     try {
-      const success = await updateCampaignStatus(campaign.id, 'approved')
+      // Spara lokal anpassning + status i parallell
+      const [success] = await Promise.all([
+        updateCampaignStatus(campaign.id, 'approved' as CampaignStatus),
+        saveLocalCustomization(campaign.id, customization),
+      ])
       if (success) {
-        setCampaign({ ...campaign, status: 'approved' })
+        setCampaign({ ...campaign, status: 'approved' as CampaignStatus })
         toast.success('Kampanj godkänd!', {
           description: 'Kampanjen är nu godkänd och redo för publicering.',
         })
@@ -123,14 +136,16 @@ export default function FranchiseCampaignPage() {
     
     setIsRejecting(true)
     try {
-      const success = await updateCampaignStatus(campaign.id, 'rejected')
+      // Spara rejection_comment + lokal anpassning + status
+      const [success] = await Promise.all([
+        updateCampaignStatus(campaign.id, 'rejected' as CampaignStatus, rejectComment || undefined),
+        saveLocalCustomization(campaign.id, customization),
+      ])
       if (success) {
-        setCampaign({ ...campaign, status: 'rejected' })
-        // Store comment locally (would be saved to DB in production)
-        console.log('Rejection comment:', rejectComment)
+        setCampaign({ ...campaign, status: 'rejected' as CampaignStatus })
         toast.success('Kampanj avvisad', {
           description: rejectComment 
-            ? `Kommentar: ${rejectComment}` 
+            ? `Kommentar sparad: ${rejectComment}` 
             : 'Kampanjen har markerats som avvisad.',
         })
         setRejectDialogOpen(false)

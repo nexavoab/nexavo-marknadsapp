@@ -55,9 +55,10 @@ const CHANNEL_LABELS: Record<CampaignChannel, string> = {
   linkedin: 'LinkedIn',
   tiktok: 'TikTok',
   email: 'E-post',
+  print_flyer: 'Flyer',
 }
 
-const ALL_CHANNELS: CampaignChannel[] = ['facebook', 'instagram', 'google', 'print', 'display', 'linkedin', 'tiktok', 'email']
+const ALL_CHANNELS: CampaignChannel[] = ['facebook', 'instagram', 'google', 'print', 'display', 'linkedin', 'tiktok', 'email', 'print_flyer']
 const ALL_STATUSES: CampaignStatus[] = ['draft', 'scheduled', 'active', 'completed', 'archived']
 
 export default function CampaignDetailPage() {

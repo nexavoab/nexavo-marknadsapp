@@ -45,6 +45,7 @@ const CHANNEL_ICONS: Record<CampaignChannel, string> = {
   print: '🖨️',
   display: '🖥️',
   email: '📧',
+  print_flyer: '🖨️',
 }
 
 type StatusFilter = 'all' | 'active' | 'scheduled' | 'completed'
