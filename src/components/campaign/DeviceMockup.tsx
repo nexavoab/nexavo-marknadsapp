@@ -128,13 +128,19 @@ export function getFormatDisplayName(format: TemplateFormat): string {
     facebook_feed: 'Facebook Feed',
     facebook_story: 'Facebook Story',
     instagram_feed: 'Instagram Feed',
+    linkedin_post: 'LinkedIn Post',
+    linkedin_article: 'LinkedIn Artikel',
+    tiktok_video: 'TikTok Video',
+    tiktok_spark: 'TikTok Spark Ad',
     instagram_story: 'Instagram Story',
     google_display: 'Google Display',
     google_search: 'Google Search',
     print_a4: 'A4 Flyer',
     print_a5: 'A5 Flyer',
     print_a3: 'A3 Poster',
+    print_flyer: 'Flyer A5',
     email_header: 'E-posthuvud',
+    email_newsletter: 'Nyhetsbrev',
   }
   return names[format] || format
 }
@@ -143,6 +149,8 @@ export function getFormatDisplayName(format: TemplateFormat): string {
  * Get format icon emoji
  */
 export function getFormatIcon(format: TemplateFormat): string {
+  if (format.includes('linkedin')) return '💼'
+  if (format.includes('tiktok')) return '🎵'
   if (format.includes('facebook') || format.includes('instagram')) return '📱'
   if (format.includes('google')) return '🔍'
   if (format.includes('print')) return '🖨️'

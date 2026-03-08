@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/contexts/AuthContext'
-import type { Campaign, Asset } from '@/types'
+import type { Campaign, Asset, CampaignStatus } from '@/types'
 
 export function useFranchiseeData() {
   const { appUser } = useAuth()
@@ -9,7 +9,7 @@ export function useFranchiseeData() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const fetchActiveCampaigns = useCallback(async () => {
+  const fetchAllCampaigns = useCallback(async () => {
     if (!appUser?.organization_id) return
 
     try {
@@ -19,7 +19,6 @@ export function useFranchiseeData() {
         .from('campaigns')
         .select('id, name, description, status, channels, start_date, end_date, created_at')
         .eq('organization_id', appUser.organization_id)
-        .eq('status', 'active')
         .order('created_at', { ascending: false })
 
       if (error) throw error
@@ -31,11 +30,14 @@ export function useFranchiseeData() {
     }
   }, [appUser?.organization_id])
 
+  // Keep old function for backwards compatibility
+  const fetchActiveCampaigns = fetchAllCampaigns
+
   useEffect(() => {
     if (appUser?.organization_id) {
-      fetchActiveCampaigns()
+      fetchAllCampaigns()
     }
-  }, [appUser?.organization_id, fetchActiveCampaigns])
+  }, [appUser?.organization_id, fetchAllCampaigns])
 
   async function fetchCampaignAssets(campaignId: string): Promise<Asset[]> {
     if (!appUser?.organization_id) return []
@@ -65,6 +67,31 @@ export function useFranchiseeData() {
     return data as Campaign
   }
 
+  async function updateCampaignStatus(
+    campaignId: string,
+    status: CampaignStatus
+  ): Promise<boolean> {
+    if (!appUser?.organization_id) return false
+
+    const { error } = await supabase
+      .from('campaigns')
+      .update({ status, updated_at: new Date().toISOString() })
+      .eq('id', campaignId)
+      .eq('organization_id', appUser.organization_id)
+
+    if (error) {
+      console.error('Failed to update campaign status:', error)
+      return false
+    }
+
+    // Update local state
+    setCampaigns((prev) =>
+      prev.map((c) => (c.id === campaignId ? { ...c, status } : c))
+    )
+
+    return true
+  }
+
   async function incrementDownload(assetId: string): Promise<void> {
     await supabase.rpc('increment_download_count', { asset_id: assetId })
   }
@@ -74,8 +101,10 @@ export function useFranchiseeData() {
     loading,
     error,
     fetchActiveCampaigns,
+    fetchAllCampaigns,
     fetchCampaignAssets,
     fetchCampaignById,
+    updateCampaignStatus,
     incrementDownload,
   }
 }

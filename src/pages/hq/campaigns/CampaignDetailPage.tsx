@@ -41,6 +41,9 @@ const STATUS_CONFIG: Record<CampaignStatus, { label: string; className: string }
   active: { label: 'Aktiv', className: 'bg-green-100 text-green-800' },
   completed: { label: 'Avslutad', className: 'bg-blue-100 text-blue-800' },
   archived: { label: 'Arkiverad', className: 'bg-muted text-muted-foreground' },
+  approved: { label: 'Godkänd', className: 'bg-green-100 text-green-800' },
+  rejected: { label: 'Avvisad', className: 'bg-red-100 text-red-800' },
+  pending_approval: { label: 'Väntar', className: 'bg-orange-100 text-orange-800' },
 }
 
 const CHANNEL_LABELS: Record<CampaignChannel, string> = {
