@@ -37,9 +37,11 @@ const CHANNEL_ICONS: Record<CampaignChannel, string> = {
   facebook: '📘',
   instagram: '📸',
   linkedin: '💼',
+  tiktok: '🎵',
   google: '🔍',
   print: '🖨️',
   display: '🖥️',
+  email: '📧',
 }
 
 type StatusFilter = 'all' | 'active' | 'scheduled' | 'completed'
