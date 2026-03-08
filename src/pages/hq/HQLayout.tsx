@@ -25,7 +25,8 @@ import {
   Download,
   MapPin,
   ChevronDown,
-  FileDown
+  FileDown,
+  FlaskConical
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -56,9 +57,13 @@ import IntegrationsPage from './IntegrationsPage'
 // Internal test pages (no nav links)
 import AIPipelineTestPage from './AIPipelineTestPage'
 
+// A/B Test page
+import ABTestPage from './ABTestPage'
+
 const navItems = [
   { to: '/hq', icon: LayoutDashboard, label: 'Dashboard', end: true },
   { to: '/hq/campaigns', icon: Megaphone, label: 'Kampanjer' },
+  { to: '/hq/ab-test', icon: FlaskConical, label: 'A/B-test' },
   { to: '/hq/franchisees', icon: Users, label: 'Franchisetagare' },
   { to: '/hq/compliance', icon: ShieldCheck, label: 'Kampanjräckvidd' },
   { to: '/hq/calendar', icon: Calendar, label: 'Kalender' },
@@ -501,6 +506,8 @@ function HQLayoutInner() {
             <Route path="campaigns" element={<CampaignsPage />} />
             <Route path="campaigns/new" element={<CampaignNewPage />} />
             <Route path="campaigns/:id" element={<CampaignDetailPage />} />
+            {/* A/B Test route */}
+            <Route path="ab-test" element={<ABTestPage />} />
             {/* Brand routes */}
             <Route path="brand" element={<BrandOverviewPage />} />
             <Route path="brand/setup" element={<BrandSetupPage />} />
