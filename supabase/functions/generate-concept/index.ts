@@ -4,6 +4,7 @@ import { z } from "https://esm.sh/zod@3.22.4";
 import { withBrand, BrandContextV1, corsHeaders } from "../_shared/withBrand.ts";
 import { callAIGatewayJSON } from "../_shared/ai-gateway.ts";
 import { guardianGate, guardianBlockedResponse } from "../_shared/guardianGate.ts";
+import { logTaskStart, logTaskComplete, logTaskFailed, getOrgIdFromBrand } from "../_shared/ai-task-logger.ts";
 
 interface LearningSignal {
   signal_type: string;
@@ -80,6 +81,9 @@ ${avoidPatterns.length > 0 ? `UNDVIK: ${avoidPatterns.join(', ')}` : ''}`;
 }
 
 export default withBrand(async ({ brand, trace_id, body, brandPrompt, supabase, admin, req }) => {
+  const startTime = Date.now();
+  let taskId: string | null = null;
+
   const parsed = BodySchema.safeParse(body);
   if (!parsed.success) {
     return new Response(
@@ -100,24 +104,38 @@ export default withBrand(async ({ brand, trace_id, body, brandPrompt, supabase, 
     hasAccountGoal: !!accountGoal,
   }));
 
-  // Fetch learning signals using user-scoped client
-  const learningContext = userId ? await fetchLearningSignals(supabase, userId) : '';
+  // Log task start to ai_tasks table
+  const orgId = await getOrgIdFromBrand(admin, brand.brand_id);
+  if (orgId) {
+    taskId = await logTaskStart(admin, orgId, 'generate-concept', {
+      slotName,
+      goalType,
+      channels,
+      budget,
+      periodTheme,
+      hasAccountGoal: !!accountGoal,
+    }, userId);
+  }
 
-  const channelList = Array.isArray(channels) ? channels.join(', ') : channels || 'ej specificerade';
+  try {
+    // Fetch learning signals using user-scoped client
+    const learningContext = userId ? await fetchLearningSignals(supabase, userId) : '';
 
-  // Build account goal context
-  const accountGoalContext = accountGoal ? `
+    const channelList = Array.isArray(channels) ? channels.join(', ') : channels || 'ej specificerade';
+
+    // Build account goal context
+    const accountGoalContext = accountGoal ? `
 KONTO-MÅL:
 - Primärmål: ${GOAL_TRANSLATIONS[accountGoal.primary_goal] || accountGoal.primary_goal}
 - North Star: ${accountGoal.north_star_metric}
 - Målvärde: ${accountGoal.target_value}` : '';
 
-  // Build archetype guideline from V1
-  const archetypeGuideline = brand.identity.archetype 
-    ? ARCHETYPE_GUIDELINES[brand.identity.archetype] || '' 
-    : '';
+    // Build archetype guideline from V1
+    const archetypeGuideline = brand.identity.archetype 
+      ? ARCHETYPE_GUIDELINES[brand.identity.archetype] || '' 
+      : '';
 
-  const systemPrompt = `Du är en erfaren marknadsföringsexpert som skapar kampanjkoncept.
+    const systemPrompt = `Du är en erfaren marknadsföringsexpert som skapar kampanjkoncept.
 
 KRITISKT - GISSA ALDRIG:
 - Om information saknas → var explicit med vad som saknas
@@ -144,7 +162,7 @@ Returnera JSON med:
   "learning_applied": []
 }`;
 
-  const userPrompt = `Skapa kampanjkoncept för:
+    const userPrompt = `Skapa kampanjkoncept för:
 KAMPANJ: ${slotName || 'Ny kampanj'}
 MÅL: ${goalType === 'lead_generation' ? 'Generera leads' : goalType === 'brand_awareness' ? 'Bygga varumärke' : goalType || 'Ej specificerat'}
 KANALER: ${channelList}
@@ -153,75 +171,115 @@ TEMA: ${periodTheme || 'Generell'}
 
 Returnera JSON.`;
 
-  const apiKey = Deno.env.get('LOVABLE_API_KEY');
-  const result = await callAIGatewayJSON<{
-    concept: {
-      huvudbudskap?: string;
-      målgrupp?: string;
-      emotionell_hook?: string;
-      erbjudande_cta?: string;
-      kanalspecifika_tips?: string[];
-      email_body?: string;
-    };
-    brand_guide_alignment?: number;
-    brand_guide_notes?: string[];
-    brand_guide_violations?: string[];
-    learning_applied?: string[];
-  }>({
-    model: 'google/gemini-2.5-flash',
-    messages: [
-      { role: 'system', content: systemPrompt },
-      { role: 'user', content: userPrompt }
-    ],
-  }, {
-    'X-Trace-Id': trace_id,
-    'X-Brand-Id': brand.brand_id,
-    'X-Context-Version': String(brand.context_version),
-  });
+    const apiKey = Deno.env.get('LOVABLE_API_KEY');
+    const result = await callAIGatewayJSON<{
+      concept: {
+        huvudbudskap?: string;
+        målgrupp?: string;
+        emotionell_hook?: string;
+        erbjudande_cta?: string;
+        kanalspecifika_tips?: string[];
+        email_body?: string;
+      };
+      brand_guide_alignment?: number;
+      brand_guide_notes?: string[];
+      brand_guide_violations?: string[];
+      learning_applied?: string[];
+    }>({
+      model: 'google/gemini-2.5-flash',
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt }
+      ],
+    }, {
+      'X-Trace-Id': trace_id,
+      'X-Brand-Id': brand.brand_id,
+      'X-Context-Version': String(brand.context_version),
+    });
 
-  const conceptText = result.concept?.email_body || 
-    `${result.concept?.huvudbudskap || ''}\n\n${result.concept?.emotionell_hook || ''}\n\n${result.concept?.erbjudande_cta || ''}`;
+    const conceptText = result.concept?.email_body || 
+      `${result.concept?.huvudbudskap || ''}\n\n${result.concept?.emotionell_hook || ''}\n\n${result.concept?.erbjudande_cta || ''}`;
 
-  console.log(JSON.stringify({
-    at: 'generate-concept.complete',
-    trace_id,
-    brand_id: brand.brand_id,
-    alignment: result.brand_guide_alignment,
-  }));
+    const durationMs = Date.now() - startTime;
 
-  // Guardian Gate validation on generated content
-  let preflight = null;
-  try {
-    const gate = await guardianGate(req, {
-      brand_profile_id: brand.brand_id,
-      channel: Array.isArray(channels) ? channels[0] || "general" : "general",
-      content: conceptText,
-      asset_type: "campaign_concept",
-    }, { policy: "fail_closed", mode: "user", source: "generate-concept" });
+    console.log(JSON.stringify({
+      at: 'generate-concept.complete',
+      trace_id,
+      brand_id: brand.brand_id,
+      alignment: result.brand_guide_alignment,
+      durationMs,
+    }));
 
-    preflight = gate.preflight;
+    // Guardian Gate validation on generated content
+    let preflight = null;
+    try {
+      const gate = await guardianGate(req, {
+        brand_profile_id: brand.brand_id,
+        channel: Array.isArray(channels) ? channels[0] || "general" : "general",
+        content: conceptText,
+        asset_type: "campaign_concept",
+      }, { policy: "fail_closed", mode: "user", source: "generate-concept" });
 
-    if (gate.blocked) {
-      return guardianBlockedResponse(gate.preflight);
+      preflight = gate.preflight;
+
+      if (gate.blocked) {
+        // Log task as failed due to guardrails
+        if (taskId) {
+          await logTaskFailed(admin, taskId, 'Blocked by brand guardrails');
+        }
+        return guardianBlockedResponse(gate.preflight);
+      }
+    } catch (gateErr) {
+      console.warn(JSON.stringify({ at: 'generate-concept.guardian_gate_error', trace_id, error: String(gateErr) }));
+      // Continue without blocking if gate fails (fail_open for generation)
     }
-  } catch (gateErr) {
-    console.warn(JSON.stringify({ at: 'generate-concept.guardian_gate_error', trace_id, error: String(gateErr) }));
-    // Continue without blocking if gate fails (fail_open for generation)
-  }
 
-  return new Response(JSON.stringify({
-    trace_id,
-    concept: conceptText,
-    conceptStructured: result.concept,
-    brand_guide_alignment: result.brand_guide_alignment,
-    brand_guide_notes: result.brand_guide_notes || [],
-    brand_guide_violations: result.brand_guide_violations || [],
-    learning_applied: result.learning_applied || [],
-    brandContextApplied: true,
-    feedbackApplied: learningContext.length > 0,
-    preflight
-  }), {
-    status: 200,
-    headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-  });
+    // Log successful task completion
+    if (taskId) {
+      await logTaskComplete(admin, taskId, {
+        brand_guide_alignment: result.brand_guide_alignment,
+        concept_length: conceptText.length,
+        has_preflight: !!preflight,
+      }, undefined, durationMs);
+    }
+
+    return new Response(JSON.stringify({
+      trace_id,
+      concept: conceptText,
+      conceptStructured: result.concept,
+      brand_guide_alignment: result.brand_guide_alignment,
+      brand_guide_notes: result.brand_guide_notes || [],
+      brand_guide_violations: result.brand_guide_violations || [],
+      learning_applied: result.learning_applied || [],
+      brandContextApplied: true,
+      feedbackApplied: learningContext.length > 0,
+      preflight
+    }), {
+      status: 200,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
+
+  } catch (error) {
+    // Log task failure
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    if (taskId) {
+      await logTaskFailed(admin, taskId, errorMessage);
+    }
+    
+    console.error(JSON.stringify({
+      at: 'generate-concept.error',
+      trace_id,
+      brand_id: brand.brand_id,
+      error: errorMessage,
+    }));
+
+    return new Response(JSON.stringify({
+      error: 'generation_failed',
+      trace_id,
+      details: errorMessage,
+    }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
+  }
 });
