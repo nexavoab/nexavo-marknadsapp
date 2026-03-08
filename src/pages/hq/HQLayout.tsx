@@ -3,6 +3,7 @@ import { Routes, Route, NavLink, useLocation, useNavigate, Link } from 'react-ro
 import { useAuth } from '@/contexts/AuthContext'
 import { useBrandContext } from '@/contexts/BrandContext'
 import { FilterProvider, useFilters, PERIOD_LABELS, type PeriodFilter } from '@/contexts/FilterContext'
+import { AIProvider } from '@/contexts/AIContext'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import NotificationBell from '@/components/notifications/NotificationBell'
@@ -537,7 +538,9 @@ function HQLayoutInner() {
 export default function HQLayout() {
   return (
     <FilterProvider>
-      <HQLayoutInner />
+      <AIProvider>
+        <HQLayoutInner />
+      </AIProvider>
     </FilterProvider>
   )
 }
