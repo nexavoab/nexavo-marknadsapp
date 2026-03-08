@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { Routes, Route, NavLink, Navigate, useLocation, useNavigate } from 'react-router-dom'
+import { Routes, Route, NavLink, Navigate, useLocation, useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
 import { useBrandContext } from '@/contexts/BrandContext'
 import { FilterProvider, useFilters, PERIOD_LABELS, type PeriodFilter } from '@/contexts/FilterContext'
@@ -80,14 +80,14 @@ function Sidebar({ onClose, collapsed = false }: { onClose?: () => void; collaps
     <aside className="flex flex-col h-full bg-slate-900 text-white">
       <div className={cn('p-4', collapsed && 'px-2 py-4')}>
         {collapsed ? (
-          <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center mx-auto">
+          <Link to="/hq" className="block w-10 h-10 bg-primary rounded-lg flex items-center justify-center mx-auto hover:opacity-90 transition-opacity">
             <span className="text-primary-foreground font-bold text-lg">N</span>
-          </div>
+          </Link>
         ) : (
-          <>
+          <Link to="/hq" className="block hover:opacity-80 transition-opacity">
             <h1 className="text-xl font-bold">Nexavo</h1>
             <p className="text-sm text-slate-400">Marknadsapp</p>
-          </>
+          </Link>
         )}
       </div>
       <Separator className="bg-slate-700" />

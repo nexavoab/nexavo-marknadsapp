@@ -27,6 +27,8 @@ interface KPICardProps {
     ctaLabel: string
     onAction: () => void
   }
+  /** Click handler to navigate or perform action */
+  onClick?: () => void
 }
 
 export function KPICard({
@@ -39,6 +41,7 @@ export function KPICard({
   format = 'number',
   details,
   emptyState,
+  onClick,
 }: KPICardProps) {
   const [showDetails, setShowDetails] = useState(false)
   const displayValue = loading ? null : (value ?? 0)
@@ -59,14 +62,24 @@ export function KPICard({
   const isPositive = trend !== undefined && trend > 0
   const isNegative = trend !== undefined && trend < 0
 
+  const isClickable = details || onClick
+
+  const handleClick = () => {
+    if (onClick) {
+      onClick()
+    } else if (details) {
+      setShowDetails(true)
+    }
+  }
+
   return (
     <>
       <div
         className={cn(
           'bg-background rounded-xl p-5 shadow-sm transition-all',
-          details && 'cursor-pointer hover:shadow-md'
+          isClickable && 'cursor-pointer hover:shadow-md hover:scale-[1.01]'
         )}
-        onClick={() => details && setShowDetails(true)}
+        onClick={handleClick}
       >
         <div className="flex items-start justify-between mb-3">
           <p className="text-sm text-muted-foreground font-medium">{label}</p>
