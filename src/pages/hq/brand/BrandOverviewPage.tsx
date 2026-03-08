@@ -91,14 +91,14 @@ export default function BrandOverviewPage() {
   }
 
   return (
-    <div className="p-8 max-w-4xl mx-auto">
+    <div className="p-4 sm:p-8 max-w-4xl mx-auto">
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-2xl font-bold mb-1">{brand.name}</h1>
+          <h1 className="text-xl sm:text-2xl font-bold mb-1">{brand.name}</h1>
           <p className="text-muted-foreground">Ert varumärke</p>
         </div>
-        <Button onClick={() => navigate('/hq/brand/setup?edit=true')}>
+        <Button onClick={() => navigate('/hq/brand/setup?edit=true')} className="w-full sm:w-auto">
           <Edit className="w-4 h-4 mr-2" />
           Redigera
         </Button>
@@ -113,11 +113,11 @@ export default function BrandOverviewPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex gap-8">
+            <div className="flex flex-col sm:flex-row gap-4 sm:gap-8">
               {/* Light background - fixed white for logo preview */}
               <div className="space-y-2">
                 <p className="text-sm text-muted-foreground">På ljus bakgrund</p>
-                <div className="w-48 h-32 bg-white border border-border rounded-lg flex items-center justify-center p-4">
+                <div className="w-full sm:w-48 h-32 bg-white border border-border rounded-lg flex items-center justify-center p-4">
                   {brand.logos?.primary_url ? (
                     <img
                       src={brand.logos.primary_url}
@@ -133,7 +133,7 @@ export default function BrandOverviewPage() {
               {/* Dark background */}
               <div className="space-y-2">
                 <p className="text-sm text-muted-foreground">På mörk bakgrund</p>
-                <div className="w-48 h-32 bg-foreground border border-border rounded-lg flex items-center justify-center p-4">
+                <div className="w-full sm:w-48 h-32 bg-foreground border border-border rounded-lg flex items-center justify-center p-4">
                   {brand.logos?.dark_bg_url || brand.logos?.primary_url ? (
                     <img
                       src={brand.logos.dark_bg_url || brand.logos.primary_url}
@@ -173,11 +173,11 @@ export default function BrandOverviewPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex gap-6">
+            <div className="flex flex-wrap gap-4 sm:gap-6">
               {brand.colors?.primary && (
                 <div className="text-center">
                   <div
-                    className="w-20 h-20 rounded-full shadow-md mb-2"
+                    className="w-16 h-16 sm:w-20 sm:h-20 rounded-full shadow-md mb-2 mx-auto"
                     style={{ backgroundColor: brand.colors.primary }}
                   />
                   <p className="text-sm font-medium">Primär</p>
@@ -187,7 +187,7 @@ export default function BrandOverviewPage() {
               {brand.colors?.secondary && (
                 <div className="text-center">
                   <div
-                    className="w-20 h-20 rounded-full shadow-md mb-2"
+                    className="w-16 h-16 sm:w-20 sm:h-20 rounded-full shadow-md mb-2 mx-auto"
                     style={{ backgroundColor: brand.colors.secondary }}
                   />
                   <p className="text-sm font-medium">Sekundär</p>
@@ -197,7 +197,7 @@ export default function BrandOverviewPage() {
               {brand.colors?.accent && (
                 <div className="text-center">
                   <div
-                    className="w-20 h-20 rounded-full shadow-md mb-2"
+                    className="w-16 h-16 sm:w-20 sm:h-20 rounded-full shadow-md mb-2 mx-auto"
                     style={{ backgroundColor: brand.colors.accent }}
                   />
                   <p className="text-sm font-medium">Accent</p>
@@ -217,14 +217,14 @@ export default function BrandOverviewPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
               <div>
                 <p className="text-sm text-muted-foreground mb-1">Rubriker</p>
-                <p className="text-lg font-semibold">{brand.typography?.heading_font || 'Ej angivet'}</p>
+                <p className="text-base sm:text-lg font-semibold">{brand.typography?.heading_font || 'Ej angivet'}</p>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground mb-1">Brödtext</p>
-                <p className="text-lg">{brand.typography?.body_font || 'Ej angivet'}</p>
+                <p className="text-base sm:text-lg">{brand.typography?.body_font || 'Ej angivet'}</p>
               </div>
             </div>
             {brand.typography?.google_fonts_url && (
