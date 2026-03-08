@@ -15,6 +15,14 @@ interface OAuthConfig {
   redirectUri: string
 }
 
+interface TokenData {
+  access_token: string
+  refresh_token?: string
+  expires_in?: number
+  token_type?: string
+  scope?: string
+}
+
 function getProviderConfig(provider: string): OAuthConfig | null {
   const baseUrl = Deno.env.get("SUPABASE_URL") ?? ""
   const redirectUri = `${baseUrl}/functions/v1/integrations-oauth?action=callback&provider=${provider}`
@@ -26,7 +34,7 @@ function getProviderConfig(provider: string): OAuthConfig | null {
         clientSecret: Deno.env.get("META_APP_SECRET") ?? "",
         authorizeUrl: "https://www.facebook.com/v18.0/dialog/oauth",
         tokenUrl: "https://graph.facebook.com/v18.0/oauth/access_token",
-        scopes: ["ads_management", "ads_read", "business_management"],
+        scopes: ["ads_management", "ads_read", "business_management", "pages_show_list"],
         redirectUri,
       }
     case "google":
@@ -38,20 +46,142 @@ function getProviderConfig(provider: string): OAuthConfig | null {
         scopes: ["https://www.googleapis.com/auth/adwords"],
         redirectUri,
       }
+    case "linkedin":
+      return {
+        clientId: Deno.env.get("LINKEDIN_CLIENT_ID") ?? "",
+        clientSecret: Deno.env.get("LINKEDIN_CLIENT_SECRET") ?? "",
+        authorizeUrl: "https://www.linkedin.com/oauth/v2/authorization",
+        tokenUrl: "https://www.linkedin.com/oauth/v2/accessToken",
+        scopes: ["r_organization_social", "w_organization_social", "rw_organization_admin"],
+        redirectUri,
+      }
+    case "tiktok":
+      return {
+        clientId: Deno.env.get("TIKTOK_CLIENT_KEY") ?? "",
+        clientSecret: Deno.env.get("TIKTOK_CLIENT_SECRET") ?? "",
+        authorizeUrl: "https://www.tiktok.com/v2/auth/authorize/",
+        tokenUrl: "https://open.tiktokapis.com/v2/oauth/token/",
+        scopes: ["user.info.basic", "video.publish"],
+        redirectUri,
+      }
     default:
       return null
   }
 }
 
-async function encryptToken(token: string): Promise<string> {
-  // In production, use proper encryption with a key from secrets
-  // For now, base64 encode (replace with actual encryption)
-  return btoa(token)
+// ============================================
+// Supabase Vault helpers
+// ============================================
+
+async function storeTokenInVault(
+  supabaseAdmin: ReturnType<typeof createClient>,
+  orgId: string,
+  provider: string,
+  tokenData: TokenData
+): Promise<string> {
+  const secretName = `oauth_${orgId}_${provider}`
+  
+  // Try to insert or update the secret using vault.secrets table
+  // Supabase Vault stores secrets in vault.secrets
+  const { data, error } = await supabaseAdmin.rpc('vault.create_secret', {
+    secret: JSON.stringify(tokenData),
+    name: secretName,
+    description: `OAuth tokens for ${provider} - org ${orgId}`
+  })
+
+  if (error) {
+    // If secret exists, update it
+    if (error.message.includes('duplicate') || error.code === '23505') {
+      const { data: updateData, error: updateError } = await supabaseAdmin.rpc('vault.update_secret', {
+        secret: JSON.stringify(tokenData),
+        name: secretName
+      })
+      if (updateError) {
+        console.error('Failed to update vault secret:', updateError)
+        throw updateError
+      }
+      return secretName
+    }
+    console.error('Failed to create vault secret:', error)
+    throw error
+  }
+  
+  return secretName
 }
 
-async function decryptToken(encrypted: string): Promise<string> {
-  // In production, use proper decryption
-  return atob(encrypted)
+async function getTokenFromVault(
+  supabaseAdmin: ReturnType<typeof createClient>,
+  secretName: string
+): Promise<TokenData | null> {
+  const { data, error } = await supabaseAdmin.rpc('vault.read_secret', {
+    name: secretName
+  })
+
+  if (error) {
+    console.error('Failed to read vault secret:', error)
+    return null
+  }
+
+  if (!data) return null
+  
+  try {
+    return JSON.parse(data) as TokenData
+  } catch {
+    console.error('Failed to parse vault secret')
+    return null
+  }
+}
+
+async function deleteVaultSecret(
+  supabaseAdmin: ReturnType<typeof createClient>,
+  secretName: string
+): Promise<void> {
+  await supabaseAdmin.rpc('vault.delete_secret', {
+    name: secretName
+  })
+}
+
+// ============================================
+// Provider-specific account info fetchers
+// ============================================
+
+async function fetchProviderAccountInfo(
+  provider: string,
+  accessToken: string
+): Promise<{ accountId: string; accountName: string } | null> {
+  try {
+    switch (provider) {
+      case "meta": {
+        const response = await fetch(
+          `https://graph.facebook.com/v18.0/me?fields=id,name&access_token=${accessToken}`
+        )
+        if (!response.ok) return null
+        const data = await response.json()
+        return { accountId: data.id, accountName: data.name }
+      }
+      case "google": {
+        // Google Ads uses a different endpoint
+        return { accountId: "pending", accountName: "Google Ads Account" }
+      }
+      case "linkedin": {
+        const response = await fetch(
+          "https://api.linkedin.com/v2/me",
+          { headers: { Authorization: `Bearer ${accessToken}` } }
+        )
+        if (!response.ok) return null
+        const data = await response.json()
+        return { accountId: data.id, accountName: `${data.localizedFirstName} ${data.localizedLastName}` }
+      }
+      case "tiktok": {
+        return { accountId: "pending", accountName: "TikTok Account" }
+      }
+      default:
+        return null
+    }
+  } catch (err) {
+    console.error(`Failed to fetch ${provider} account info:`, err)
+    return null
+  }
 }
 
 serve(async (req) => {
@@ -64,7 +194,7 @@ serve(async (req) => {
   const provider = url.searchParams.get("provider")
   const action = url.searchParams.get("action")
 
-  if (!provider || !["meta", "google"].includes(provider)) {
+  if (!provider || !["meta", "google", "linkedin", "tiktok"].includes(provider)) {
     return new Response(JSON.stringify({ error: "Invalid provider" }), {
       status: 400,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -85,11 +215,12 @@ serve(async (req) => {
   )
 
   // ============================================
-  // ACTION: INITIATE OAuth flow
+  // ACTION: AUTHORIZE - Start OAuth flow
   // ============================================
-  if (action === "initiate") {
-    // Get organization ID from request body or auth
+  if (action === "authorize" || action === "initiate") {
     let organizationId: string | null = null
+    
+    // Try to get from body first
     try {
       const body = await req.json()
       organizationId = body.organizationId
@@ -99,12 +230,12 @@ serve(async (req) => {
       if (authHeader) {
         const { data: { user } } = await supabase.auth.getUser(authHeader.replace("Bearer ", ""))
         if (user) {
-          const { data: membership } = await supabase
-            .from("organization_members")
+          const { data: appUser } = await supabase
+            .from("app_users")
             .select("organization_id")
-            .eq("user_id", user.id)
+            .eq("auth_id", user.id)
             .single()
-          organizationId = membership?.organization_id
+          organizationId = appUser?.organization_id
         }
       }
     }
@@ -146,6 +277,9 @@ serve(async (req) => {
       params.set("access_type", "offline")
       params.set("prompt", "consent")
     }
+    if (provider === "tiktok") {
+      params.set("client_key", config.clientId)
+    }
 
     const authUrl = `${config.authorizeUrl}?${params.toString()}`
 
@@ -162,10 +296,9 @@ serve(async (req) => {
     const code = url.searchParams.get("code")
     const state = url.searchParams.get("state")
     const error = url.searchParams.get("error")
+    const frontendUrl = Deno.env.get("FRONTEND_URL") ?? "http://localhost:5173"
 
     if (error) {
-      // Redirect to error page
-      const frontendUrl = Deno.env.get("FRONTEND_URL") ?? "http://localhost:5173"
       return Response.redirect(`${frontendUrl}/hq/integrations?error=${error}`)
     }
 
@@ -184,10 +317,7 @@ serve(async (req) => {
       .single()
 
     if (stateError || !stateData) {
-      return new Response(JSON.stringify({ error: "Invalid state token" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      })
+      return Response.redirect(`${frontendUrl}/hq/integrations?error=invalid_state`)
     }
 
     // Delete used state token
@@ -195,10 +325,7 @@ serve(async (req) => {
 
     // Check expiry
     if (new Date(stateData.expires_at) < new Date()) {
-      return new Response(JSON.stringify({ error: "State token expired" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      })
+      return Response.redirect(`${frontendUrl}/hq/integrations?error=state_expired`)
     }
 
     // Exchange code for tokens
@@ -216,44 +343,49 @@ serve(async (req) => {
 
     if (!tokenResponse.ok) {
       console.error("Token exchange failed:", await tokenResponse.text())
-      const frontendUrl = Deno.env.get("FRONTEND_URL") ?? "http://localhost:5173"
       return Response.redirect(`${frontendUrl}/hq/integrations?error=token_exchange_failed`)
     }
 
-    const tokens = await tokenResponse.json()
+    const tokens: TokenData = await tokenResponse.json()
 
-    // Encrypt tokens before storage
-    const encryptedAccessToken = await encryptToken(tokens.access_token)
-    const encryptedRefreshToken = tokens.refresh_token 
-      ? await encryptToken(tokens.refresh_token) 
+    // Store tokens in Vault
+    const secretName = await storeTokenInVault(
+      supabase,
+      stateData.organization_id,
+      provider,
+      tokens
+    )
+
+    // Fetch account info from provider
+    const accountInfo = await fetchProviderAccountInfo(provider, tokens.access_token)
+
+    // Calculate expiration
+    const expiresAt = tokens.expires_in
+      ? new Date(Date.now() + tokens.expires_in * 1000).toISOString()
       : null
 
-    // Store/update integration
+    // Store/update social_connections
     const { error: upsertError } = await supabase
-      .from("integrations")
+      .from("social_connections")
       .upsert({
-        organization_id: stateData.organization_id,
+        org_id: stateData.organization_id,
         provider,
-        status: "active",
-        access_token_encrypted: encryptedAccessToken,
-        refresh_token_encrypted: encryptedRefreshToken,
-        token_expires_at: tokens.expires_in 
-          ? new Date(Date.now() + tokens.expires_in * 1000).toISOString()
-          : null,
+        provider_account_id: accountInfo?.accountId ?? null,
+        provider_account_name: accountInfo?.accountName ?? null,
+        vault_secret_id: secretName,
         scopes: config.scopes,
+        status: "active",
+        expires_at: expiresAt,
         updated_at: new Date().toISOString(),
       }, {
-        onConflict: "organization_id,provider",
+        onConflict: "org_id,provider",
       })
 
     if (upsertError) {
-      console.error("Failed to store integration:", upsertError)
-      const frontendUrl = Deno.env.get("FRONTEND_URL") ?? "http://localhost:5173"
+      console.error("Failed to store social connection:", upsertError)
       return Response.redirect(`${frontendUrl}/hq/integrations?error=storage_failed`)
     }
 
-    // Redirect to success page
-    const frontendUrl = Deno.env.get("FRONTEND_URL") ?? "http://localhost:5173"
     return Response.redirect(`${frontendUrl}/hq/integrations?success=true&provider=${provider}`)
   }
 
@@ -261,7 +393,6 @@ serve(async (req) => {
   // ACTION: REFRESH tokens
   // ============================================
   if (action === "refresh") {
-    // Get organization ID from auth
     const authHeader = req.headers.get("authorization")
     if (!authHeader) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
@@ -279,36 +410,42 @@ serve(async (req) => {
     }
 
     // Get user's organization
-    const { data: membership } = await supabase
-      .from("organization_members")
+    const { data: appUser } = await supabase
+      .from("app_users")
       .select("organization_id")
-      .eq("user_id", user.id)
+      .eq("auth_id", user.id)
       .single()
 
-    if (!membership) {
+    if (!appUser?.organization_id) {
       return new Response(JSON.stringify({ error: "No organization found" }), {
         status: 404,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       })
     }
 
-    // Get integration
-    const { data: integration } = await supabase
-      .from("integrations")
+    // Get social connection
+    const { data: connection } = await supabase
+      .from("social_connections")
       .select("*")
-      .eq("organization_id", membership.organization_id)
+      .eq("org_id", appUser.organization_id)
       .eq("provider", provider)
       .single()
 
-    if (!integration || !integration.refresh_token_encrypted) {
+    if (!connection || !connection.vault_secret_id) {
+      return new Response(JSON.stringify({ error: "No connection found" }), {
+        status: 404,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      })
+    }
+
+    // Get tokens from Vault
+    const tokens = await getTokenFromVault(supabase, connection.vault_secret_id)
+    if (!tokens || !tokens.refresh_token) {
       return new Response(JSON.stringify({ error: "No refresh token available" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       })
     }
-
-    // Decrypt refresh token
-    const refreshToken = await decryptToken(integration.refresh_token_encrypted)
 
     // Refresh tokens
     const tokenResponse = await fetch(config.tokenUrl, {
@@ -317,18 +454,18 @@ serve(async (req) => {
       body: new URLSearchParams({
         client_id: config.clientId,
         client_secret: config.clientSecret,
-        refresh_token: refreshToken,
+        refresh_token: tokens.refresh_token,
         grant_type: "refresh_token",
       }),
     })
 
     if (!tokenResponse.ok) {
       console.error("Token refresh failed:", await tokenResponse.text())
-      // Mark integration as needing reauth
+      // Mark connection as expired
       await supabase
-        .from("integrations")
-        .update({ status: "expired" })
-        .eq("id", integration.id)
+        .from("social_connections")
+        .update({ status: "expired", updated_at: new Date().toISOString() })
+        .eq("id", connection.id)
 
       return new Response(JSON.stringify({ error: "Token refresh failed" }), {
         status: 400,
@@ -336,26 +473,89 @@ serve(async (req) => {
       })
     }
 
-    const tokens = await tokenResponse.json()
+    const newTokens: TokenData = await tokenResponse.json()
+    
+    // Merge with existing refresh_token if not provided
+    const mergedTokens: TokenData = {
+      ...newTokens,
+      refresh_token: newTokens.refresh_token ?? tokens.refresh_token,
+    }
 
-    // Encrypt and store new tokens
-    const encryptedAccessToken = await encryptToken(tokens.access_token)
-    const encryptedRefreshToken = tokens.refresh_token 
-      ? await encryptToken(tokens.refresh_token) 
-      : integration.refresh_token_encrypted
+    // Store new tokens in Vault
+    await storeTokenInVault(supabase, appUser.organization_id, provider, mergedTokens)
+
+    // Update social_connections
+    const expiresAt = newTokens.expires_in
+      ? new Date(Date.now() + newTokens.expires_in * 1000).toISOString()
+      : null
 
     await supabase
-      .from("integrations")
+      .from("social_connections")
       .update({
-        access_token_encrypted: encryptedAccessToken,
-        refresh_token_encrypted: encryptedRefreshToken,
-        token_expires_at: tokens.expires_in 
-          ? new Date(Date.now() + tokens.expires_in * 1000).toISOString()
-          : null,
         status: "active",
+        expires_at: expiresAt,
         updated_at: new Date().toISOString(),
       })
-      .eq("id", integration.id)
+      .eq("id", connection.id)
+
+    return new Response(JSON.stringify({ success: true }), {
+      status: 200,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    })
+  }
+
+  // ============================================
+  // ACTION: DISCONNECT - Revoke and remove connection
+  // ============================================
+  if (action === "disconnect") {
+    const authHeader = req.headers.get("authorization")
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      })
+    }
+
+    const { data: { user } } = await supabase.auth.getUser(authHeader.replace("Bearer ", ""))
+    if (!user) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      })
+    }
+
+    const { data: appUser } = await supabase
+      .from("app_users")
+      .select("organization_id")
+      .eq("auth_id", user.id)
+      .single()
+
+    if (!appUser?.organization_id) {
+      return new Response(JSON.stringify({ error: "No organization found" }), {
+        status: 404,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      })
+    }
+
+    // Get connection
+    const { data: connection } = await supabase
+      .from("social_connections")
+      .select("*")
+      .eq("org_id", appUser.organization_id)
+      .eq("provider", provider)
+      .single()
+
+    if (connection?.vault_secret_id) {
+      // Delete from Vault
+      await deleteVaultSecret(supabase, connection.vault_secret_id)
+    }
+
+    // Delete connection
+    await supabase
+      .from("social_connections")
+      .delete()
+      .eq("org_id", appUser.organization_id)
+      .eq("provider", provider)
 
     return new Response(JSON.stringify({ success: true }), {
       status: 200,

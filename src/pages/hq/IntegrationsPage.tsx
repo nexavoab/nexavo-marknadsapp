@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { useAuth } from '@/contexts/AuthContext'
-import { supabase } from '@/lib/supabase'
+import { useSocialConnections, type SocialProvider, type SocialConnection } from '@/hooks/useSocialConnections'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -14,8 +13,8 @@ import {
   RefreshCw,
   AlertCircle,
   Facebook,
-  Mail,
-  MessageSquare
+  Linkedin,
+  Clock
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -28,16 +27,17 @@ function GoogleAdsIcon({ className }: { className?: string }) {
   )
 }
 
-interface Integration {
-  id: string
-  provider: string
-  status: 'active' | 'expired' | 'error' | 'disconnected'
-  updated_at: string
-  token_expires_at: string | null
+// TikTok icon
+function TikTokIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="currentColor">
+      <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z"/>
+    </svg>
+  )
 }
 
 interface IntegrationProvider {
-  id: string
+  id: SocialProvider
   name: string
   description: string
   icon: React.ComponentType<{ className?: string }>
@@ -64,28 +64,62 @@ const providers: IntegrationProvider[] = [
     available: true,
   },
   {
-    id: 'email',
-    name: 'E-post',
-    description: 'Automatiserade e-postutskick för kampanjstart, påminnelser och bekräftelser.',
-    icon: Mail,
-    iconBgColor: 'bg-emerald-500',
+    id: 'linkedin',
+    name: 'LinkedIn',
+    description: 'Publicera innehåll och kör kampanjer på LinkedIn för B2B-marknadsföring.',
+    icon: Linkedin,
+    iconBgColor: 'bg-blue-700',
     available: false,
     comingSoon: true,
   },
   {
-    id: 'sms',
-    name: 'SMS',
-    description: 'Pushnotifikationer via SMS när kampanjer är redo att godkännas.',
-    icon: MessageSquare,
-    iconBgColor: 'bg-purple-500',
+    id: 'tiktok',
+    name: 'TikTok',
+    description: 'Nå yngre målgrupper med kreativa videoannonser på TikTok.',
+    icon: TikTokIcon,
+    iconBgColor: 'bg-black',
     available: false,
     comingSoon: true,
   },
 ]
 
+function StatusBadge({ status }: { status: 'active' | 'expired' | 'revoked' | 'disconnected' }) {
+  switch (status) {
+    case 'active':
+      return (
+        <Badge variant="default" className="bg-green-100 text-green-700 hover:bg-green-100">
+          <CheckCircle2 className="h-3 w-3 mr-1" />
+          Ansluten
+        </Badge>
+      )
+    case 'expired':
+      return (
+        <Badge variant="default" className="bg-amber-100 text-amber-700 hover:bg-amber-100">
+          <Clock className="h-3 w-3 mr-1" />
+          Utgången
+        </Badge>
+      )
+    case 'revoked':
+      return (
+        <Badge variant="destructive">
+          <XCircle className="h-3 w-3 mr-1" />
+          Återkallad
+        </Badge>
+      )
+    default:
+      return (
+        <Badge variant="secondary">
+          <XCircle className="h-3 w-3 mr-1" />
+          Ej ansluten
+        </Badge>
+      )
+  }
+}
+
 function IntegrationCard({
   provider,
-  integration,
+  connection,
+  status,
   onConnect,
   onDisconnect,
   onRefresh,
@@ -93,15 +127,16 @@ function IntegrationCard({
   stepNumber,
 }: {
   provider: IntegrationProvider
-  integration?: Integration
+  connection?: SocialConnection
+  status: 'active' | 'expired' | 'revoked' | 'disconnected'
   onConnect: () => void
   onDisconnect: () => void
   onRefresh: () => void
   loading: boolean
   stepNumber: number
 }) {
-  const isConnected = integration?.status === 'active'
-  const isExpired = integration?.status === 'expired'
+  const isConnected = status === 'active'
+  const isExpired = status === 'expired'
   const Icon = provider.icon
 
   return (
@@ -123,7 +158,10 @@ function IntegrationCard({
           <Icon className="h-6 w-6 text-white" />
         </div>
         <div className="flex-1">
-          <CardTitle className="text-lg">{provider.name}</CardTitle>
+          <div className="flex items-center gap-2">
+            <CardTitle className="text-lg">{provider.name}</CardTitle>
+            <StatusBadge status={status} />
+          </div>
           <CardDescription className="mt-1">
             {provider.description}
           </CardDescription>
@@ -131,37 +169,21 @@ function IntegrationCard({
       </CardHeader>
       <CardContent>
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            {isConnected ? (
-              <div>
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 className="h-5 w-5 text-green-500" />
-                  <span className="text-sm text-green-600 font-medium">Ansluten</span>
-                </div>
-                <p className="text-xs text-emerald-600 mt-1">
-                  ✓ 18/24 franchisetagare aktiva
-                </p>
-              </div>
-            ) : isExpired ? (
-              <div>
-                <div className="flex items-center gap-2">
-                  <AlertCircle className="h-5 w-5 text-amber-500" />
-                  <span className="text-sm text-amber-600 font-medium">Token utgången</span>
-                </div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Ansluts centralt av HQ — gäller alla franchisetagare automatiskt
-                </p>
-              </div>
-            ) : (
-              <div>
-                <div className="flex items-center gap-2">
-                  <XCircle className="h-5 w-5 text-slate-400" />
-                  <span className="text-sm text-slate-500">Ej ansluten</span>
-                </div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Ansluts centralt av HQ — gäller alla franchisetagare automatiskt
-                </p>
-              </div>
+          <div className="flex-1">
+            {connection?.provider_account_name && (
+              <p className="text-sm text-muted-foreground">
+                Konto: <span className="font-medium text-foreground">{connection.provider_account_name}</span>
+              </p>
+            )}
+            {!isConnected && !provider.comingSoon && (
+              <p className="text-xs text-muted-foreground mt-1">
+                Ansluts centralt av HQ — gäller alla franchisetagare automatiskt
+              </p>
+            )}
+            {isConnected && connection?.expires_at && (
+              <p className="text-xs text-muted-foreground mt-1">
+                Utgår: {new Date(connection.expires_at).toLocaleDateString('sv-SE')}
+              </p>
             )}
           </div>
           <div className="flex items-center gap-2">
@@ -171,19 +193,32 @@ function IntegrationCard({
                 size="sm"
                 onClick={onRefresh}
                 disabled={loading || !provider.available}
+                title="Förnya token"
               >
                 <RefreshCw className={cn('h-4 w-4', loading && 'animate-spin')} />
               </Button>
             )}
             {isConnected || isExpired ? (
-              <Button
-                variant={isExpired ? 'default' : 'outline'}
-                size="sm"
-                onClick={isExpired ? onConnect : onDisconnect}
-                disabled={loading || !provider.available}
-              >
-                {isExpired ? 'Förnya' : 'Koppla från'}
-              </Button>
+              <>
+                {isExpired && (
+                  <Button
+                    variant="default"
+                    size="sm"
+                    onClick={onConnect}
+                    disabled={loading || !provider.available}
+                  >
+                    Förnya
+                  </Button>
+                )}
+                <Button
+                  variant={isExpired ? 'outline' : 'destructive'}
+                  size="sm"
+                  onClick={onDisconnect}
+                  disabled={loading || !provider.available}
+                >
+                  Koppla från
+                </Button>
+              </>
             ) : provider.comingSoon ? (
               <button
                 className="text-xs text-primary hover:underline"
@@ -203,9 +238,9 @@ function IntegrationCard({
             )}
           </div>
         </div>
-        {integration?.updated_at && (
+        {connection?.updated_at && (
           <p className="text-xs text-muted-foreground mt-3">
-            Senast uppdaterad: {new Date(integration.updated_at).toLocaleString('sv-SE')}
+            Senast uppdaterad: {new Date(connection.updated_at).toLocaleString('sv-SE')}
           </p>
         )}
       </CardContent>
@@ -214,10 +249,19 @@ function IntegrationCard({
 }
 
 export default function IntegrationsPage() {
-  const { appUser } = useAuth()
   const [searchParams, setSearchParams] = useSearchParams()
-  const [integrations, setIntegrations] = useState<Integration[]>([])
-  const [loading, setLoading] = useState(true)
+  const {
+    connections,
+    loading,
+    error: hookError,
+    connectProvider,
+    disconnectProvider,
+    refreshProvider,
+    getConnection,
+    getStatus,
+    reload,
+  } = useSocialConnections()
+  
   const [actionLoading, setActionLoading] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
@@ -231,81 +275,27 @@ export default function IntegrationsPage() {
     if (successParam === 'true' && providerParam) {
       const providerName = providers.find(p => p.id === providerParam)?.name ?? providerParam
       setSuccess(`${providerName} har anslutits!`)
-      // Clear URL params
       setSearchParams({})
-      // Reload integrations
-      loadIntegrations()
+      reload()
     } else if (errorParam) {
       setError(`Anslutning misslyckades: ${errorParam}`)
       setSearchParams({})
     }
-  }, [searchParams, setSearchParams])
+  }, [searchParams, setSearchParams, reload])
 
-  const loadIntegrations = async () => {
-    if (!appUser?.organization_id) {
-      setLoading(false)
-      return
-    }
-
-    try {
-      const { data, error } = await supabase
-        .from('integrations')
-        .select('*')
-        .eq('organization_id', appUser.organization_id)
-
-      if (error) {
-        // Graceful degradation: log error but show providers anyway
-        console.error('Failed to load integrations:', error)
-        setIntegrations([])
-      } else {
-        setIntegrations(data ?? [])
-      }
-    } catch (err) {
-      // Graceful degradation: log error but don't show error banner
-      console.error('Failed to load integrations:', err)
-      setIntegrations([])
-    } finally {
-      setLoading(false)
-    }
-  }
-
+  // Sync hook error to local error state
   useEffect(() => {
-    loadIntegrations()
-  }, [appUser?.organization_id])
+    if (hookError) {
+      setError(hookError)
+    }
+  }, [hookError])
 
-  const handleConnect = async (providerId: string) => {
+  const handleConnect = async (providerId: SocialProvider) => {
     setActionLoading(providerId)
     setError(null)
 
     try {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session?.access_token) {
-        throw new Error('Inte inloggad')
-      }
-
-      // Call the OAuth initiate endpoint
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/integrations-oauth?provider=${providerId}&action=initiate`,
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${session.access_token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            organizationId: appUser?.organization_id,
-          }),
-        }
-      )
-
-      if (!response.ok) {
-        throw new Error('Kunde inte starta OAuth-flöde')
-      }
-
-      const { url } = await response.json()
-      
-      // Redirect to OAuth provider
-      window.location.href = url
+      await connectProvider(providerId)
     } catch (err) {
       console.error('Connect failed:', err)
       setError(err instanceof Error ? err.message : 'Anslutning misslyckades')
@@ -314,7 +304,7 @@ export default function IntegrationsPage() {
     }
   }
 
-  const handleDisconnect = async (providerId: string) => {
+  const handleDisconnect = async (providerId: SocialProvider) => {
     if (!confirm('Är du säker på att du vill koppla från denna integration?')) {
       return
     }
@@ -323,49 +313,22 @@ export default function IntegrationsPage() {
     setError(null)
 
     try {
-      const { error } = await supabase
-        .from('integrations')
-        .update({ status: 'disconnected' })
-        .eq('organization_id', appUser?.organization_id)
-        .eq('provider', providerId)
-
-      if (error) throw error
-
-      await loadIntegrations()
+      await disconnectProvider(providerId)
       setSuccess('Integration frånkopplad')
     } catch (err) {
       console.error('Disconnect failed:', err)
-      setError('Kunde inte koppla från integration')
+      setError(err instanceof Error ? err.message : 'Kunde inte koppla från integration')
     } finally {
       setActionLoading(null)
     }
   }
 
-  const handleRefresh = async (providerId: string) => {
+  const handleRefresh = async (providerId: SocialProvider) => {
     setActionLoading(providerId)
     setError(null)
 
     try {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session?.access_token) {
-        throw new Error('Inte inloggad')
-      }
-
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/integrations-oauth?provider=${providerId}&action=refresh`,
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${session.access_token}`,
-          },
-        }
-      )
-
-      if (!response.ok) {
-        throw new Error('Kunde inte förnya token')
-      }
-
-      await loadIntegrations()
+      await refreshProvider(providerId)
       setSuccess('Token förnyad')
     } catch (err) {
       console.error('Refresh failed:', err)
@@ -385,6 +348,8 @@ export default function IntegrationsPage() {
       return () => clearTimeout(timer)
     }
   }, [success, error])
+
+  const activeConnections = connections.filter(c => c.status === 'active').length
 
   return (
     <div className="p-6 lg:p-8 max-w-4xl">
@@ -415,7 +380,7 @@ export default function IntegrationsPage() {
       )}
 
       {/* Onboarding banner - show when no providers are connected */}
-      {!loading && integrations.filter(i => i.status === 'active').length === 0 && (
+      {!loading && activeConnections === 0 && (
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 flex items-start gap-3">
           <div className="text-blue-500 text-xl">💡</div>
           <div>
@@ -450,12 +415,14 @@ export default function IntegrationsPage() {
           {/* Available Integrations */}
           <div className="grid gap-4 md:grid-cols-2">
             {providers.filter(p => !p.comingSoon).map((provider, index) => {
-              const integration = integrations.find((i) => i.provider === provider.id)
+              const connection = getConnection(provider.id)
+              const status = getStatus(provider.id)
               return (
                 <IntegrationCard
                   key={provider.id}
                   provider={provider}
-                  integration={integration}
+                  connection={connection}
+                  status={status}
                   onConnect={() => handleConnect(provider.id)}
                   onDisconnect={() => handleDisconnect(provider.id)}
                   onRefresh={() => handleRefresh(provider.id)}
@@ -471,12 +438,14 @@ export default function IntegrationsPage() {
             <h3 className="text-sm font-medium text-muted-foreground mb-3 uppercase tracking-wide">Roadmap</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 opacity-50">
               {providers.filter(p => p.comingSoon).map((provider, index) => {
-                const integration = integrations.find((i) => i.provider === provider.id)
+                const connection = getConnection(provider.id)
+                const status = getStatus(provider.id)
                 return (
                   <IntegrationCard
                     key={provider.id}
                     provider={provider}
-                    integration={integration}
+                    connection={connection}
+                    status={status}
                     onConnect={() => handleConnect(provider.id)}
                     onDisconnect={() => handleDisconnect(provider.id)}
                     onRefresh={() => handleRefresh(provider.id)}
