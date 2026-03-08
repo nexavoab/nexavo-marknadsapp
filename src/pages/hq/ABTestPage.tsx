@@ -1,3 +1,4 @@
+import { useSearchParams } from 'react-router-dom'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -328,13 +329,20 @@ function TestList({ tests }: { tests: ABTest[] }) {
 
 // Main page component
 export default function ABTestPage() {
+  const [searchParams, setSearchParams] = useSearchParams()
+  const activeTab = searchParams.get('tab') || 'posts'
+  
+  const handleTabChange = (value: string) => {
+    setSearchParams({ tab: value })
+  }
+
   return (
     <div className="p-4 md:p-8 space-y-6 w-full min-w-0 overflow-x-hidden">
       <div>
         <h1 className="text-2xl font-bold">A/B-test</h1>
         <p className="text-muted-foreground mt-1">Jämför varianter för inlägg, artiklar och hemsida.</p>
       </div>
-      <Tabs defaultValue="posts">
+      <Tabs value={activeTab} onValueChange={handleTabChange}>
         <TabsList>
           <TabsTrigger value="posts">📱 Inlägg</TabsTrigger>
           <TabsTrigger value="articles">📝 Artiklar</TabsTrigger>

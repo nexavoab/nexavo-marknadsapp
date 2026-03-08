@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { Routes, Route, NavLink, Navigate, useLocation, useNavigate, Link } from 'react-router-dom'
+import { Routes, Route, NavLink, useLocation, useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
 import { useBrandContext } from '@/contexts/BrandContext'
 import { FilterProvider, useFilters, PERIOD_LABELS, type PeriodFilter } from '@/contexts/FilterContext'
@@ -59,6 +59,9 @@ import AIPipelineTestPage from './AIPipelineTestPage'
 
 // A/B Test page
 import ABTestPage from './ABTestPage'
+
+// 404 page
+import NotFoundPage from '../NotFoundPage'
 
 const navItems = [
   { to: '/hq', icon: LayoutDashboard, label: 'Dashboard', end: true },
@@ -521,7 +524,8 @@ function HQLayoutInner() {
             <Route path="settings" element={<SettingsPage />} />
             {/* Internal test pages - no nav links */}
             <Route path="ai-test" element={<AIPipelineTestPage />} />
-            <Route path="*" element={<Navigate to="/hq" replace />} />
+            {/* 404 catch-all */}
+            <Route path="*" element={<NotFoundPage />} />
           </Routes>
         )}
         </main>

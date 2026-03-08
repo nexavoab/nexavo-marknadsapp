@@ -83,20 +83,65 @@ interface Campaign {
   status: string
   budget?: number
   slot: CampaignSlotCompat
+  /** If campaign spans year boundary, this is a clipped segment */
+  isClipped?: boolean
 }
 
-function mapSlotToCampaign(slot: CampaignSlotCompat): Campaign {
-  return {
+/**
+ * Maps a campaign slot to Campaign objects.
+ * If a campaign spans Dec→Jan (year boundary), it's split into two segments:
+ * one ending at Dec, and one starting at Jan (for next year's view).
+ */
+function mapSlotToCampaigns(slot: CampaignSlotCompat): Campaign[] {
+  const startMonth = new Date(slot.startDate).getMonth()
+  const endMonth = new Date(slot.endDate).getMonth()
+  const startYear = new Date(slot.startDate).getFullYear()
+  const endYear = new Date(slot.endDate).getFullYear()
+  
+  const baseCampaign = {
     id: slot.id,
     label: slot.title,
     icon: getIcon(slot.title),
     channelLabel: getChannelLabel(slot),
-    startMonth: new Date(slot.startDate).getMonth(),
-    endMonth: new Date(slot.endDate).getMonth(),
     status: getStatusLabel(slot.status),
     budget: slot.budget,
     slot
   }
+
+  // If campaign spans year boundary (e.g., Dec 2026 → Jan 2027)
+  if (endYear > startYear) {
+    // Return two segments: one for current year ending at Dec (11), 
+    // and one for next year starting at Jan (0)
+    const campaigns: Campaign[] = []
+    
+    // Current year segment: startMonth → December (11)
+    campaigns.push({
+      ...baseCampaign,
+      id: `${slot.id}-part1`,
+      startMonth,
+      endMonth: 11,
+      isClipped: true
+    })
+    
+    // Next year segment: January (0) → endMonth
+    // This will show if viewing next year's calendar
+    campaigns.push({
+      ...baseCampaign,
+      id: `${slot.id}-part2`,
+      startMonth: 0,
+      endMonth,
+      isClipped: true
+    })
+    
+    return campaigns
+  }
+
+  // Normal case: campaign within same year
+  return [{
+    ...baseCampaign,
+    startMonth,
+    endMonth
+  }]
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -598,7 +643,7 @@ export default function AnnualPlanPage() {
   const [selected, setSelected] = useState<string | null>(null)
 
   const campaigns = useMemo(() => {
-    return slotsCompat.map(mapSlotToCampaign)
+    return slotsCompat.flatMap(mapSlotToCampaigns)
   }, [slotsCompat])
 
   const filteredCampaigns = useMemo(() => {

@@ -13,6 +13,7 @@ import {
   CheckCircle2,
   ArrowRight,
   Plus,
+  FlaskConical,
 } from 'lucide-react'
 import {
   LineChart,
@@ -431,14 +432,15 @@ export default function DashboardPage() {
         <OnboardingChecklist steps={onboardingSteps} onDismiss={dismiss} />
       )}
 
-      {/* KPI Row - 4 cards with trends */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* KPI Row - 5 cards with trends */}
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
         <KPICard
           label="Aktiva kampanjer"
           value={stats.activeCampaigns}
           loading={loading}
           icon={Megaphone}
           trend={stats.campaignsTrend}
+          onClick={() => navigate('/hq/campaigns')}
           emptyState={{
             message: 'Inga aktiva kampanjer',
             ctaLabel: 'Skapa nu',
@@ -451,6 +453,7 @@ export default function DashboardPage() {
           loading={loading}
           icon={Users}
           trend={stats.franchiseeTrend}
+          onClick={() => navigate('/hq/franchisees')}
           emptyState={{
             message: 'Inga franchisetagare ännu',
             ctaLabel: 'Bjud in',
@@ -463,6 +466,7 @@ export default function DashboardPage() {
           loading={loading}
           icon={Download}
           trend={stats.downloadsTrend}
+          onClick={() => navigate('/hq/campaigns')}
         />
         <KPICard
           label="Material"
@@ -470,6 +474,16 @@ export default function DashboardPage() {
           loading={loading}
           icon={FolderOpen}
           trend={stats.assetTrend}
+          onClick={() => navigate('/hq/brand')}
+        />
+        <KPICard
+          label="Aktiva A/B-tester"
+          value={2}
+          loading={loading}
+          icon={FlaskConical}
+          trend={50}
+          trendLabel="nya denna månad"
+          onClick={() => navigate('/hq/ab-test')}
         />
       </div>
 

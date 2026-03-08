@@ -3,8 +3,14 @@ import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
-import { ChevronLeft, ChevronRight, CalendarDays } from 'lucide-react'
+import { ChevronLeft, ChevronRight, CalendarDays, Plus, Filter } from 'lucide-react'
 import { useCampaignSlots, STATUS_CONFIG } from '@/hooks/useCampaignSlots'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 
 const WEEKDAYS = ['Mån', 'Tis', 'Ons', 'Tor', 'Fre', 'Lör', 'Sön']
 const MONTHS = [
@@ -61,15 +67,29 @@ const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
   cancelled: { bg: 'bg-gray-400 opacity-50', text: 'text-gray-700' },
 }
 
+const CHANNELS = ['facebook', 'instagram', 'google', 'email', 'linkedin'] as const
+
 export default function CalendarPage() {
   const navigate = useNavigate()
   const { slotsCompat: campaigns, loading } = useCampaignSlots()
   const [currentDate, setCurrentDate] = useState(new Date())
+  const [selectedChannels, setSelectedChannels] = useState<string[]>([])
+  const [showNewCampaignDialog, setShowNewCampaignDialog] = useState(false)
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null)
 
   const year = currentDate.getFullYear()
   const month = currentDate.getMonth()
 
   const days = useMemo(() => getMonthDays(year, month), [year, month])
+
+  // Filter campaigns by selected channels
+  const filteredCampaigns = useMemo(() => {
+    if (selectedChannels.length === 0) return campaigns
+    return campaigns.filter(c => {
+      const channel = c.channels?.[0] ?? 'facebook'
+      return selectedChannels.includes(channel)
+    })
+  }, [campaigns, selectedChannels])
 
   // Calculate Gantt-style campaign bands
   const ganttCampaigns = useMemo(() => {
@@ -83,7 +103,7 @@ export default function CalendarPage() {
       return new Date(y, m - 1, d)
     }
     
-    const relevantCampaigns = campaigns.filter((c) => {
+    const relevantCampaigns = filteredCampaigns.filter((c) => {
       if (!c.startDate) return false
       const start = parseLocalDate(c.startDate)
       const end = c.endDate ? parseLocalDate(c.endDate) : start
@@ -144,7 +164,7 @@ export default function CalendarPage() {
     })
 
     return result
-  }, [campaigns, year, month])
+  }, [filteredCampaigns, year, month])
 
   // Check if there are any campaigns for current month
   const hasCampaignsThisMonth = ganttCampaigns.length > 0
@@ -163,6 +183,28 @@ export default function CalendarPage() {
 
   const today = formatDateKey(new Date())
 
+  const toggleChannel = (channel: string) => {
+    setSelectedChannels(prev => 
+      prev.includes(channel)
+        ? prev.filter(c => c !== channel)
+        : [...prev, channel]
+    )
+  }
+
+  const handleDateClick = (date: Date, isCurrentMonth: boolean) => {
+    if (!isCurrentMonth) return
+    setSelectedDate(date)
+    setShowNewCampaignDialog(true)
+  }
+
+  const handleCreateCampaign = () => {
+    if (selectedDate) {
+      const dateStr = formatDateKey(selectedDate)
+      navigate(`/hq/campaigns/new?date=${dateStr}`)
+    }
+    setShowNewCampaignDialog(false)
+  }
+
   // Agenda list for mobile - show campaigns for current month
   const agendaItems = useMemo(() => {
     const parseLocalDate = (dateStr: string): Date => {
@@ -173,7 +215,7 @@ export default function CalendarPage() {
     const monthStart = new Date(year, month, 1)
     const monthEnd = new Date(year, month + 1, 0, 23, 59, 59)
     
-    return campaigns
+    return filteredCampaigns
       .filter(c => {
         if (!c.startDate) return false
         const start = parseLocalDate(c.startDate)
@@ -190,19 +232,57 @@ export default function CalendarPage() {
         const end = c.endDate ? parseLocalDate(c.endDate) : start
         return { ...c, startDateParsed: start, endDateParsed: end }
       })
-  }, [campaigns, year, month])
+  }, [filteredCampaigns, year, month])
 
   return (
     <div className="p-4 md:p-8 space-y-6 w-full min-w-0 overflow-x-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Kalender</h1>
           <p className="text-muted-foreground mt-1">
             Översikt över kampanjer per månad.
           </p>
         </div>
+        <Button onClick={() => navigate('/hq/campaigns/new')}>
+          <Plus className="w-4 h-4 mr-2" />
+          Ny kampanj
+        </Button>
       </div>
+
+      {/* Channel Filter */}
+      <Card className="p-4">
+        <div className="flex items-center gap-3 flex-wrap">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Filter className="w-4 h-4" />
+            <span>Filtrera kanal:</span>
+          </div>
+          {CHANNELS.map(channel => {
+            const isSelected = selectedChannels.includes(channel)
+            return (
+              <button
+                key={channel}
+                onClick={() => toggleChannel(channel)}
+                className={`px-3 py-1.5 text-sm rounded-full border transition-colors ${
+                  isSelected 
+                    ? 'bg-primary text-primary-foreground border-primary' 
+                    : 'bg-background border-border hover:border-primary/50'
+                }`}
+              >
+                {channel.charAt(0).toUpperCase() + channel.slice(1)}
+              </button>
+            )
+          })}
+          {selectedChannels.length > 0 && (
+            <button
+              onClick={() => setSelectedChannels([])}
+              className="text-sm text-muted-foreground hover:text-foreground underline"
+            >
+              Rensa filter
+            </button>
+          )}
+        </div>
+      </Card>
 
       {/* Mobile Agenda View */}
       <div className="md:hidden">
@@ -337,11 +417,13 @@ export default function CalendarPage() {
                   return (
                     <div
                       key={idx}
+                      onClick={() => handleDateClick(day.date, day.isCurrentMonth)}
                       className={`
                         group min-h-[60px] md:min-h-[80px] p-1 relative
                         border-r border-b border-border
-                        ${day.isCurrentMonth ? 'bg-card' : 'bg-muted/50'}
+                        ${day.isCurrentMonth ? 'bg-card cursor-pointer hover:bg-muted/50' : 'bg-muted/50'}
                         ${isToday ? 'ring-2 ring-inset ring-primary' : ''}
+                        transition-colors
                       `}
                     >
                       <div
@@ -352,9 +434,11 @@ export default function CalendarPage() {
                         {day.date.getDate()}
                       </div>
                       {/* Hover "+" indicator for empty cells */}
-                      <span className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 text-muted-foreground text-lg pointer-events-none">
-                        +
-                      </span>
+                      {day.isCurrentMonth && (
+                        <span className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 text-primary text-2xl font-light pointer-events-none">
+                          +
+                        </span>
+                      )}
                     </div>
                   )
                 })}
@@ -431,6 +515,37 @@ export default function CalendarPage() {
           </div>
         )}
       </Card>
+
+      {/* New Campaign Dialog */}
+      <Dialog open={showNewCampaignDialog} onOpenChange={setShowNewCampaignDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Skapa kampanj</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-4">
+            <p className="text-sm text-muted-foreground">
+              Vill du skapa en ny kampanj med startdatum{' '}
+              <strong>
+                {selectedDate?.toLocaleDateString('sv-SE', {
+                  day: 'numeric',
+                  month: 'long',
+                  year: 'numeric',
+                })}
+              </strong>
+              ?
+            </p>
+            <div className="flex gap-3 justify-end">
+              <Button variant="outline" onClick={() => setShowNewCampaignDialog(false)}>
+                Avbryt
+              </Button>
+              <Button onClick={handleCreateCampaign}>
+                <Plus className="w-4 h-4 mr-2" />
+                Skapa kampanj
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
