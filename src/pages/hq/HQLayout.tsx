@@ -7,6 +7,7 @@ import { AIProvider } from '@/contexts/AIContext'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import NotificationBell from '@/components/notifications/NotificationBell'
+import AIChatPanel from '@/components/ai/AIChatPanel'
 import { toast } from 'sonner'
 import {
   LayoutDashboard,
@@ -531,6 +532,9 @@ function HQLayoutInner() {
         )}
         </main>
       </div>
+
+      {/* AI Chat Panel - floating FAB + slide-in panel */}
+      <AIChatPanel />
     </div>
   )
 }

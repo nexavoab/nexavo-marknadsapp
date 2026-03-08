@@ -29,11 +29,13 @@ import {
   Save,
   User,
   MessageSquare,
+  Sparkles,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { LocalVariantsTab } from '@/components/campaigns/LocalVariantsTab'
+import { CopyGeneratorSheet } from '@/components/campaigns/CopyGeneratorSheet'
 
-type TabType = 'assets' | 'variants'
+type TabType = 'assets' | 'variants' | 'copy'
 
 const STATUS_CONFIG: Record<CampaignStatus, { label: string; className: string }> = {
   draft: { label: 'Utkast', className: 'bg-muted text-muted-foreground' },
@@ -334,6 +336,18 @@ export default function CampaignDetailPage() {
             <Layers className="w-4 h-4" />
             Lokala varianter
           </button>
+          <button
+            className={cn(
+              'px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors flex items-center gap-2',
+              activeTab === 'copy'
+                ? 'border-primary text-primary'
+                : 'border-transparent text-muted-foreground hover:text-foreground'
+            )}
+            onClick={() => setActiveTab('copy')}
+          >
+            <Sparkles className="w-4 h-4" />
+            AI Copy
+          </button>
         </div>
       </div>
 
@@ -356,6 +370,10 @@ export default function CampaignDetailPage() {
 
       {activeTab === 'variants' && (
         <LocalVariantsTab campaignId={campaign.id} assets={assets} />
+      )}
+
+      {activeTab === 'copy' && (
+        <CopyGeneratorSheet campaign={campaign} />
       )}
 
       {/* Edit Modal */}
