@@ -31,6 +31,9 @@ const STATUS_STYLES: Record<CampaignStatus, { label: string; className: string }
   active: { label: 'Aktiv', className: 'bg-green-100 text-green-800' },
   completed: { label: 'Avslutad', className: 'bg-blue-100 text-blue-800' },
   archived: { label: 'Arkiverad', className: 'bg-gray-100 text-gray-500' },
+  approved: { label: 'Godkänd', className: 'bg-green-100 text-green-800' },
+  rejected: { label: 'Avvisad', className: 'bg-red-100 text-red-800' },
+  pending_approval: { label: 'Väntar', className: 'bg-orange-100 text-orange-800' },
 }
 
 const CHANNEL_ICONS: Record<CampaignChannel, string> = {

@@ -289,7 +289,7 @@ function TestCard({ test }: { test: ABTest }) {
         </div>
       </CardHeader>
       <CardContent>
-        <div className="flex gap-4">
+        <div className="flex flex-col md:flex-row gap-4">
           <VariantColumn 
             variant={test.variantA} 
             isWinner={test.winner === 'A'} 
@@ -329,7 +329,7 @@ function TestList({ tests }: { tests: ABTest[] }) {
 // Main page component
 export default function ABTestPage() {
   return (
-    <div className="p-8 space-y-6">
+    <div className="p-4 md:p-8 space-y-6 w-full min-w-0 overflow-x-hidden">
       <div>
         <h1 className="text-2xl font-bold">A/B-test</h1>
         <p className="text-muted-foreground mt-1">Jämför varianter för inlägg, artiklar och hemsida.</p>

@@ -466,11 +466,11 @@ function HQLayoutInner() {
 
       {/* Main content */}
       <div className={cn(
-        'flex flex-col min-h-screen transition-all duration-200',
+        'flex flex-col min-h-screen transition-all duration-200 overflow-x-hidden',
         sidebarCollapsed ? 'lg:ml-16' : 'lg:ml-64'
       )}>
         {/* Topbar */}
-        <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-border bg-card px-4 lg:px-6">
+        <header className="sticky top-0 z-30 flex h-14 items-center gap-2 md:gap-3 border-b border-border bg-card px-2 md:px-4 lg:px-6 min-w-0 overflow-x-auto">
           {/* Collapse sidebar button (desktop only) */}
           <button
             onClick={() => setSidebarCollapsed(!sidebarCollapsed)}

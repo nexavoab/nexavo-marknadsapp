@@ -1,26 +1,16 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useAuth } from '@/contexts/AuthContext'
-import { supabase } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
-import { toast } from 'sonner'
 import { ChevronLeft, ChevronRight, CalendarDays } from 'lucide-react'
+import { useCampaignSlots, STATUS_CONFIG } from '@/hooks/useCampaignSlots'
 
 const WEEKDAYS = ['Mån', 'Tis', 'Ons', 'Tor', 'Fre', 'Lör', 'Sön']
 const MONTHS = [
   'Januari', 'Februari', 'Mars', 'April', 'Maj', 'Juni',
   'Juli', 'Augusti', 'September', 'Oktober', 'November', 'December'
 ]
-
-interface CalendarCampaign {
-  id: string
-  name: string
-  status: string
-  start_date: string | null
-  end_date: string | null
-}
 
 interface GanttCampaign {
   id: string
@@ -63,58 +53,21 @@ function formatDateKey(date: Date): string {
   return date.toISOString().split('T')[0]
 }
 
-const STATUS_COLORS: Record<string, { bg: string; text: string; badge: string }> = {
-  active: { bg: 'bg-emerald-500', text: 'text-white', badge: 'bg-emerald-100 text-emerald-800' },
-  draft: { bg: 'bg-amber-400', text: 'text-amber-900', badge: 'bg-amber-100 text-amber-800' },
-  planned: { bg: 'bg-blue-400', text: 'text-white', badge: 'bg-blue-100 text-blue-800' },
-  scheduled: { bg: 'bg-blue-400', text: 'text-white', badge: 'bg-blue-100 text-blue-800' },
-  completed: { bg: 'bg-slate-400', text: 'text-white', badge: 'bg-slate-100 text-slate-700' },
-  cancelled: { bg: 'bg-gray-300 opacity-50', text: 'text-gray-700', badge: 'bg-gray-100 text-gray-600' },
-  archived: { bg: 'bg-gray-300', text: 'text-gray-700', badge: 'bg-gray-100 text-gray-600' },
-}
-
-const STATUS_LABELS: Record<string, string> = {
-  active: 'Aktiv',
-  draft: 'Utkast',
-  planned: 'Planerad',
-  scheduled: 'Schemalagd',
-  completed: 'Avslutad',
-  cancelled: 'Avbruten',
-  archived: 'Arkiverad',
+// Status colors for Gantt bars - matches CampaignSlotCompat status types
+const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
+  planned: { bg: 'bg-blue-500', text: 'text-white' },
+  in_progress: { bg: 'bg-yellow-500', text: 'text-yellow-900' },
+  completed: { bg: 'bg-green-500', text: 'text-white' },
+  cancelled: { bg: 'bg-gray-400 opacity-50', text: 'text-gray-700' },
 }
 
 export default function CalendarPage() {
-  const { appUser } = useAuth()
   const navigate = useNavigate()
-  const [campaigns, setCampaigns] = useState<CalendarCampaign[]>([])
-  const [loading, setLoading] = useState(true)
+  const { slotsCompat: campaigns, loading } = useCampaignSlots()
   const [currentDate, setCurrentDate] = useState(new Date())
 
   const year = currentDate.getFullYear()
   const month = currentDate.getMonth()
-
-  useEffect(() => {
-    async function fetchCampaigns() {
-      if (!appUser?.organization_id) return
-
-      try {
-        const { data, error } = await supabase
-          .from('campaigns')
-          .select('id, name, status, start_date, end_date')
-          .eq('organization_id', appUser.organization_id)
-
-        if (error) throw error
-        setCampaigns(data || [])
-      } catch (err) {
-        console.error('Failed to fetch campaigns:', err)
-        toast.error('Kunde inte hämta kampanjer')
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchCampaigns()
-  }, [appUser?.organization_id])
 
   const days = useMemo(() => getMonthDays(year, month), [year, month])
 
@@ -131,17 +84,17 @@ export default function CalendarPage() {
     }
     
     const relevantCampaigns = campaigns.filter((c) => {
-      if (!c.start_date) return false
-      const start = parseLocalDate(c.start_date)
-      const end = c.end_date ? parseLocalDate(c.end_date) : start
+      if (!c.startDate) return false
+      const start = parseLocalDate(c.startDate)
+      const end = c.endDate ? parseLocalDate(c.endDate) : start
       // Campaign overlaps with current month
       return start <= monthEnd && end >= monthStart
     })
 
     // Sort by start date
     relevantCampaigns.sort((a, b) => {
-      const aStart = parseLocalDate(a.start_date!)
-      const bStart = parseLocalDate(b.start_date!)
+      const aStart = parseLocalDate(a.startDate)
+      const bStart = parseLocalDate(b.startDate)
       return aStart.getTime() - bStart.getTime()
     })
 
@@ -150,9 +103,9 @@ export default function CalendarPage() {
     const rowEndDays: number[] = []
 
     relevantCampaigns.forEach((campaign) => {
-      const campaignStart = parseLocalDate(campaign.start_date!)
-      const campaignEnd = campaign.end_date 
-        ? parseLocalDate(campaign.end_date) 
+      const campaignStart = parseLocalDate(campaign.startDate)
+      const campaignEnd = campaign.endDate 
+        ? parseLocalDate(campaign.endDate) 
         : campaignStart
 
       // Calculate overlapping days within this month
@@ -174,17 +127,13 @@ export default function CalendarPage() {
       }
       rowEndDays[row] = overlapEndDay
 
-      // Mock franchisee counts (cycle through: 12, 8, 24, 6, 18)
-      const mockFranchiseeCounts = [12, 8, 24, 6, 18]
-      const franchiseeCount = mockFranchiseeCounts[result.length % mockFranchiseeCounts.length]
-
-      // Mock budgets
-      const mockBudgets = [45000, 30000, 75000, 20000, 55000]
-      const budget = mockBudgets[result.length % mockBudgets.length]
+      // Use real data from campaign_slots (franchiseeCount from hook or default)
+      const franchiseeCount = campaign.franchiseeCount ?? 0
+      const budget = campaign.budget ?? 0
 
       result.push({
         id: campaign.id,
-        name: campaign.name,
+        name: campaign.title,
         status: campaign.status,
         left,
         width,
@@ -226,25 +175,25 @@ export default function CalendarPage() {
     
     return campaigns
       .filter(c => {
-        if (!c.start_date) return false
-        const start = parseLocalDate(c.start_date)
-        const end = c.end_date ? parseLocalDate(c.end_date) : start
+        if (!c.startDate) return false
+        const start = parseLocalDate(c.startDate)
+        const end = c.endDate ? parseLocalDate(c.endDate) : start
         return start <= monthEnd && end >= monthStart
       })
       .sort((a, b) => {
-        const aStart = parseLocalDate(a.start_date!)
-        const bStart = parseLocalDate(b.start_date!)
+        const aStart = parseLocalDate(a.startDate)
+        const bStart = parseLocalDate(b.startDate)
         return aStart.getTime() - bStart.getTime()
       })
       .map(c => {
-        const start = parseLocalDate(c.start_date!)
-        const end = c.end_date ? parseLocalDate(c.end_date) : start
-        return { ...c, startDate: start, endDate: end }
+        const start = parseLocalDate(c.startDate)
+        const end = c.endDate ? parseLocalDate(c.endDate) : start
+        return { ...c, startDateParsed: start, endDateParsed: end }
       })
   }, [campaigns, year, month])
 
   return (
-    <div className="p-4 md:p-8 space-y-6">
+    <div className="p-4 md:p-8 space-y-6 w-full min-w-0 overflow-x-hidden">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -294,8 +243,7 @@ export default function CalendarPage() {
           ) : (
             <div className="space-y-3">
               {agendaItems.map((campaign) => {
-                const colors = STATUS_COLORS[campaign.status] || STATUS_COLORS.draft
-                const statusLabel = STATUS_LABELS[campaign.status] || campaign.status
+                const statusConfig = STATUS_CONFIG[campaign.status] || STATUS_CONFIG.planned
                 const formatMobileDate = (date: Date) => 
                   date.toLocaleDateString('sv-SE', { day: 'numeric', month: 'short' })
 
@@ -307,16 +255,16 @@ export default function CalendarPage() {
                   >
                     <div className="flex items-start justify-between gap-2 mb-1">
                       <h4 className="font-medium text-foreground text-sm truncate">
-                        {campaign.name}
+                        {campaign.title}
                       </h4>
-                      <span className={`text-xs px-2 py-0.5 rounded-full ${colors.badge}`}>
-                        {statusLabel}
+                      <span className={`text-xs px-2 py-0.5 rounded-full ${statusConfig.bgClass} text-white`}>
+                        {statusConfig.label}
                       </span>
                     </div>
                     <p className="text-xs text-muted-foreground">
-                      {formatMobileDate(campaign.startDate)}
-                      {campaign.endDate.getTime() !== campaign.startDate.getTime() && (
-                        <> → {formatMobileDate(campaign.endDate)}</>
+                      {formatMobileDate(campaign.startDateParsed)}
+                      {campaign.endDateParsed.getTime() !== campaign.startDateParsed.getTime() && (
+                        <> → {formatMobileDate(campaign.endDateParsed)}</>
                       )}
                     </p>
                   </button>
@@ -328,7 +276,7 @@ export default function CalendarPage() {
       </div>
 
       {/* Desktop Calendar View */}
-      <Card className="hidden md:block p-4 overflow-x-auto">
+      <Card className="hidden md:block p-4 overflow-x-auto max-w-full">
         <div className="flex items-center justify-between mb-6 min-w-[600px]">
           <Button variant="outline" size="sm" onClick={goToPreviousMonth}>
             <ChevronLeft className="w-4 h-4" />
@@ -348,9 +296,9 @@ export default function CalendarPage() {
 
         {/* Status Legend */}
         <div className="flex gap-4 text-xs text-muted-foreground mb-3 px-4">
-          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-emerald-500 inline-block"/>Aktiv</span>
-          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-blue-400 inline-block"/>Planerad</span>
-          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-amber-400 inline-block"/>Utkast</span>
+          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-yellow-500 inline-block"/>Pågår</span>
+          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-blue-500 inline-block"/>Planerad</span>
+          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-green-500 inline-block"/>Avslutad</span>
         </div>
 
         {loading ? (
@@ -416,10 +364,11 @@ export default function CalendarPage() {
               {hasCampaignsThisMonth && (
                 <div className="absolute inset-0 pointer-events-none">
                   {ganttCampaigns.map((campaign) => {
-                    const colors = STATUS_COLORS[campaign.status] || STATUS_COLORS.draft
+                    const colors = STATUS_COLORS[campaign.status] || STATUS_COLORS.planned
+                    const statusConfig = STATUS_CONFIG[campaign.status as keyof typeof STATUS_CONFIG] || STATUS_CONFIG.planned
                     const rowOffset = 24 + campaign.row * 22 // Start below date number
                     const isCancelled = campaign.status === 'cancelled'
-                    const isActive = campaign.status === 'active'
+                    const isInProgress = campaign.status === 'in_progress'
 
                     return (
                       <div
@@ -435,7 +384,7 @@ export default function CalendarPage() {
                         {/* Gantt bar - all info visible without hover */}
                         <button
                           onClick={() => navigate(`/hq/campaigns/${campaign.id}`)}
-                          title={`${campaign.name} · Status: ${campaign.status}`}
+                          title={`${campaign.name} · Status: ${statusConfig.label}`}
                           className={`
                             w-full py-0.5 px-2 rounded-sm text-xs font-medium
                             hover:scale-[1.02] transition-all cursor-pointer
@@ -444,9 +393,9 @@ export default function CalendarPage() {
                             ${isCancelled ? 'opacity-50' : 'hover:opacity-90'}
                           `}
                         >
-                          {/* Active status indicator - green dot */}
-                          {isActive && (
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-300 flex-shrink-0" />
+                          {/* In-progress status indicator - pulsing dot */}
+                          {isInProgress && (
+                            <span className="w-1.5 h-1.5 rounded-full bg-yellow-200 flex-shrink-0 animate-pulse" />
                           )}
                           {/* Cancelled indicator */}
                           {isCancelled && (

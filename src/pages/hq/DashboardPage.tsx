@@ -85,6 +85,9 @@ const STATUS_STYLES: Record<
   scheduled: { color: 'text-blue-600', icon: '🔵', label: 'schemalagd' },
   completed: { color: 'text-muted-foreground', icon: '✅', label: 'klar' },
   archived: { color: 'text-muted-foreground', icon: '📦', label: 'arkiverad' },
+  approved: { color: 'text-green-600', icon: '✅', label: 'godkänd' },
+  rejected: { color: 'text-red-600', icon: '❌', label: 'avvisad' },
+  pending_approval: { color: 'text-orange-600', icon: '⏳', label: 'väntar' },
 }
 
 // Mock data - trend chart with actual + target
@@ -400,7 +403,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="p-4 md:p-6 lg:p-8 space-y-6 bg-muted/30 min-h-screen">
+    <div className="p-4 md:p-6 lg:p-8 space-y-6 bg-muted/30 min-h-screen w-full min-w-0 overflow-x-hidden">
       {/* Page Header with actions */}
       <PageHeader
         title="God morgon"

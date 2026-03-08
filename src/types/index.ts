@@ -63,7 +63,7 @@ export interface Brand {
   updated_at: string
 }
 
-export type CampaignStatus = 'draft' | 'scheduled' | 'active' | 'completed' | 'archived'
+export type CampaignStatus = 'draft' | 'scheduled' | 'active' | 'completed' | 'archived' | 'approved' | 'rejected' | 'pending_approval'
 export type CampaignChannel = 'facebook' | 'instagram' | 'linkedin' | 'tiktok' | 'google' | 'print' | 'display' | 'email'
 
 export interface Campaign {
