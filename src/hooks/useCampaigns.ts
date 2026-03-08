@@ -6,13 +6,27 @@
 import { useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/contexts/AuthContext'
-import type { Campaign, CampaignDraft, CampaignStatus } from '@/types'
+import type { Campaign, CampaignDraft, CampaignStatus, CampaignChannel } from '@/types'
+
+export interface CampaignUpdateData {
+  name?: string
+  description?: string
+  status?: CampaignStatus
+  channels?: CampaignChannel[]
+  start_date?: string | null
+  end_date?: string | null
+  target_persona?: Record<string, unknown> | null
+  key_messages?: string[]
+}
 
 interface UseCampaignsReturn {
   fetchCampaigns: () => Promise<Campaign[]>
   fetchCampaign: (id: string) => Promise<Campaign | null>
   createCampaign: (draft: CampaignDraft) => Promise<Campaign>
+  updateCampaign: (campaignId: string, data: CampaignUpdateData) => Promise<Campaign>
   updateCampaignStatus: (campaignId: string, status: CampaignStatus) => Promise<void>
+  duplicateCampaign: (campaignId: string) => Promise<Campaign>
+  archiveCampaign: (campaignId: string) => Promise<void>
   loading: boolean
 }
 
@@ -39,7 +53,7 @@ export function useCampaigns(): UseCampaignsReturn {
   }
 
   /**
-   * Hämtar en specifik kampanj
+   * Hämtar en specifik kampanj med alla fält inklusive target_persona och key_messages
    */
   async function fetchCampaign(id: string): Promise<Campaign | null> {
     if (!appUser?.organization_id) {
@@ -48,7 +62,7 @@ export function useCampaigns(): UseCampaignsReturn {
 
     const { data, error } = await supabase
       .from('campaigns')
-      .select('id, name, description, status, channels, start_date, end_date, created_at, organization_id')
+      .select('id, name, description, status, channels, start_date, end_date, created_at, updated_at, organization_id, brand_id, target_persona, key_messages, created_by')
       .eq('id', id)
       .eq('organization_id', appUser.organization_id)
       .single()
@@ -114,11 +128,91 @@ export function useCampaigns(): UseCampaignsReturn {
     if (error) throw new Error(`Update error: ${error.message}`)
   }
 
+  /**
+   * Uppdaterar en kampanj med valfria fält
+   */
+  async function updateCampaign(
+    campaignId: string,
+    data: CampaignUpdateData
+  ): Promise<Campaign> {
+    if (!appUser?.organization_id) {
+      throw new Error('Ej inloggad')
+    }
+
+    setLoading(true)
+    try {
+      const { data: updated, error } = await supabase
+        .from('campaigns')
+        .update({ ...data, updated_at: new Date().toISOString() })
+        .eq('id', campaignId)
+        .eq('organization_id', appUser.organization_id)
+        .select('id, name, description, status, channels, start_date, end_date, created_at, updated_at, organization_id, brand_id, target_persona, key_messages, created_by')
+        .single()
+
+      if (error) throw new Error(`Update error: ${error.message}`)
+      return updated as Campaign
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  /**
+   * Duplicerar en kampanj med " (kopia)" i titeln
+   */
+  async function duplicateCampaign(campaignId: string): Promise<Campaign> {
+    if (!appUser?.organization_id) {
+      throw new Error('Ej inloggad')
+    }
+
+    setLoading(true)
+    try {
+      // Hämta originalkampanjen
+      const original = await fetchCampaign(campaignId)
+      if (!original) {
+        throw new Error('Kampanjen hittades inte')
+      }
+
+      // Skapa kopia med " (kopia)" i titeln
+      const { data, error } = await supabase
+        .from('campaigns')
+        .insert({
+          organization_id: appUser.organization_id,
+          brand_id: original.brand_id,
+          name: `${original.name} (kopia)`,
+          description: original.description,
+          status: 'draft', // Ny kopia startar alltid som draft
+          channels: original.channels,
+          start_date: original.start_date,
+          end_date: original.end_date,
+          target_persona: original.target_persona,
+          key_messages: original.key_messages,
+          created_by: appUser.id,
+        })
+        .select('id, name, description, status, channels, start_date, end_date, created_at, updated_at, organization_id, brand_id, target_persona, key_messages, created_by')
+        .single()
+
+      if (error) throw new Error(`Duplicate error: ${error.message}`)
+      return data as Campaign
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  /**
+   * Arkiverar en kampanj (sätter status till 'archived')
+   */
+  async function archiveCampaign(campaignId: string): Promise<void> {
+    await updateCampaignStatus(campaignId, 'archived')
+  }
+
   return {
     fetchCampaigns,
     fetchCampaign,
     createCampaign,
+    updateCampaign,
     updateCampaignStatus,
+    duplicateCampaign,
+    archiveCampaign,
     loading,
   }
 }

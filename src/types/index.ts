@@ -52,6 +52,7 @@ export interface Brand {
   id: string
   organization_id: string
   name: string
+  positioning?: string
   tone_traits: ToneTraits
   colors: VisualIdentityColors
   logos: VisualIdentityLogos

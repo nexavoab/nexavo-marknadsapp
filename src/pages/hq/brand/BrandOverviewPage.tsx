@@ -9,15 +9,36 @@ import {
   Palette, 
   Type, 
   Shield,
-  AlertCircle
+  AlertCircle,
+  Target,
+  MessageSquare
 } from 'lucide-react'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 
-const TONE_LABELS = {
+const TONE_LABELS: Record<string, { low: string; high: string }> = {
   formality: { low: 'Formell', high: 'Avslappnad' },
   modernity: { low: 'Klassisk', high: 'Modern' },
   emotion: { low: 'Saklig', high: 'Varm' },
   volume: { low: 'Subtil', high: 'Bestämd' },
+}
+
+function getToneTraitBadges(toneTraits: Record<string, number | undefined> | { formality?: number; modernity?: number; emotion?: number; volume?: number } | null | undefined): string[] {
+  if (!toneTraits) return []
+  
+  const badges: string[] = []
+  const traits = toneTraits as Record<string, number | undefined>
+  
+  for (const [key, labels] of Object.entries(TONE_LABELS)) {
+    const value = traits[key] ?? 0.5
+    // Visa label baserat på vilket håll slider lutar
+    if (value >= 0.5) {
+      badges.push(labels.high)
+    } else {
+      badges.push(labels.low)
+    }
+  }
+  
+  return badges
 }
 
 export default function BrandOverviewPage() {
@@ -83,10 +104,10 @@ export default function BrandOverviewPage() {
           </CardHeader>
           <CardContent>
             <div className="flex gap-8">
-              {/* Light background */}
+              {/* Light background - fixed white for logo preview */}
               <div className="space-y-2">
                 <p className="text-sm text-muted-foreground">På ljus bakgrund</p>
-                <div className="w-48 h-32 bg-white border rounded-lg flex items-center justify-center p-4">
+                <div className="w-48 h-32 bg-white border border-border rounded-lg flex items-center justify-center p-4">
                   {brand.logos?.primary_url ? (
                     <img
                       src={brand.logos.primary_url}
@@ -102,7 +123,7 @@ export default function BrandOverviewPage() {
               {/* Dark background */}
               <div className="space-y-2">
                 <p className="text-sm text-muted-foreground">På mörk bakgrund</p>
-                <div className="w-48 h-32 bg-slate-800 border rounded-lg flex items-center justify-center p-4">
+                <div className="w-48 h-32 bg-foreground border border-border rounded-lg flex items-center justify-center p-4">
                   {brand.logos?.dark_bg_url || brand.logos?.primary_url ? (
                     <img
                       src={brand.logos.dark_bg_url || brand.logos.primary_url}
@@ -110,13 +131,28 @@ export default function BrandOverviewPage() {
                       className="max-w-full max-h-full object-contain"
                     />
                   ) : (
-                    <span className="text-muted-foreground text-sm">Ingen logotyp</span>
+                    <span className="text-background text-sm">Ingen logotyp</span>
                   )}
                 </div>
               </div>
             </div>
           </CardContent>
         </Card>
+
+        {/* Positioning section */}
+        {brand.positioning && (
+          <Card className="bg-card border-border">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-foreground">
+                <Target className="w-5 h-5" />
+                Positionering
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-foreground leading-relaxed">{brand.positioning}</p>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Colors section */}
         <Card>
@@ -193,34 +229,24 @@ export default function BrandOverviewPage() {
         </Card>
 
         {/* Tone of voice section */}
-        <Card>
+        <Card className="bg-card border-border">
           <CardHeader>
-            <CardTitle>Ton och röst</CardTitle>
+            <CardTitle className="flex items-center gap-2 text-foreground">
+              <MessageSquare className="w-5 h-5" />
+              Ton och röst
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {Object.entries(TONE_LABELS).map(([key, labels]) => {
-                const value = brand.tone_traits?.[key as keyof typeof brand.tone_traits] ?? 0.5
-                return (
-                  <div key={key} className="space-y-1">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">{labels.low}</span>
-                      <span className="text-muted-foreground">{labels.high}</span>
-                    </div>
-                    <div className="relative h-2 bg-muted rounded-full">
-                      <div
-                        className="absolute left-0 top-0 h-full bg-primary rounded-full"
-                        style={{ width: `${value * 100}%` }}
-                      />
-                      <div
-                        className="absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-primary rounded-full border-2 border-white shadow"
-                        style={{ left: `calc(${value * 100}% - 8px)` }}
-                      />
-                    </div>
-                  </div>
-                )
-              })}
+            <div className="flex flex-wrap gap-2">
+              {getToneTraitBadges(brand.tone_traits).map((trait) => (
+                <Badge key={trait} variant="secondary" className="text-sm px-3 py-1">
+                  {trait}
+                </Badge>
+              ))}
             </div>
+            {(!brand.tone_traits || getToneTraitBadges(brand.tone_traits).length === 0) && (
+              <p className="text-sm text-muted-foreground">Ingen tonalitet angiven</p>
+            )}
           </CardContent>
         </Card>
 
