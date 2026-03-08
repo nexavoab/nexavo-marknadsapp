@@ -73,6 +73,10 @@ const CHANNEL_FORMATS: Record<string, { label: string; formats: TemplateFormat[]
     label: '📱 SOCIALT',
     formats: ['facebook_feed', 'facebook_story', 'instagram_feed', 'instagram_story'],
   },
+  linkedin: {
+    label: '💼 LINKEDIN',
+    formats: ['linkedin_post', 'linkedin_article'],
+  },
   google: {
     label: '🔍 GOOGLE',
     formats: ['google_display'],
@@ -92,6 +96,8 @@ const FORMAT_DIMENSIONS: Record<TemplateFormat, string> = {
   facebook_story: '1080×1920',
   instagram_feed: '1080×1080',
   instagram_story: '1080×1920',
+  linkedin_post: '1200×627',
+  linkedin_article: '1200×627',
   google_display: '300×250',
   google_search: 'Text',
   print_a4: '2480×3508',
@@ -419,6 +425,7 @@ function StepChannels({ draft, setDraft, onNext, onBack }: StepProps) {
       const channels: CampaignChannel[] = []
       if (selectedFormats.some((f) => f.startsWith('facebook'))) channels.push('facebook')
       if (selectedFormats.some((f) => f.startsWith('instagram'))) channels.push('instagram')
+      if (selectedFormats.some((f) => f.startsWith('linkedin'))) channels.push('linkedin')
       if (selectedFormats.some((f) => f.startsWith('google'))) channels.push('google')
       if (selectedFormats.some((f) => f.startsWith('print'))) channels.push('print')
 

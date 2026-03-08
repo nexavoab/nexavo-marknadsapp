@@ -13,6 +13,8 @@ export const FORMAT_LABELS: Record<TemplateFormat, FormatInfo> = {
   facebook_story:  { label: 'Facebook Story',  dimensions: '1080×1920', category: 'social' },
   instagram_feed:  { label: 'Instagram Feed',  dimensions: '1080×1080', category: 'social' },
   instagram_story: { label: 'Instagram Story', dimensions: '1080×1920', category: 'social' },
+  linkedin_post:   { label: 'LinkedIn Post',   dimensions: '1200×627',  category: 'social' },
+  linkedin_article:{ label: 'LinkedIn Artikel',dimensions: '1200×627',  category: 'social' },
   google_display:  { label: 'Google Display',  dimensions: '300×250',   category: 'google' },
   google_search:   { label: 'Google Search',   dimensions: 'Text',      category: 'google' },
   print_a4:        { label: 'A4 Flyer',        dimensions: '2480×3508', category: 'print'  },

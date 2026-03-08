@@ -36,6 +36,7 @@ const STATUS_STYLES: Record<CampaignStatus, { label: string; className: string }
 const CHANNEL_ICONS: Record<CampaignChannel, string> = {
   facebook: '📘',
   instagram: '📸',
+  linkedin: '💼',
   google: '🔍',
   print: '🖨️',
   display: '🖥️',

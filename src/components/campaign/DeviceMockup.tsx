@@ -128,6 +128,8 @@ export function getFormatDisplayName(format: TemplateFormat): string {
     facebook_feed: 'Facebook Feed',
     facebook_story: 'Facebook Story',
     instagram_feed: 'Instagram Feed',
+    linkedin_post: 'LinkedIn Post',
+    linkedin_article: 'LinkedIn Artikel',
     instagram_story: 'Instagram Story',
     google_display: 'Google Display',
     google_search: 'Google Search',
@@ -143,6 +145,7 @@ export function getFormatDisplayName(format: TemplateFormat): string {
  * Get format icon emoji
  */
 export function getFormatIcon(format: TemplateFormat): string {
+  if (format.includes('linkedin')) return '💼'
   if (format.includes('facebook') || format.includes('instagram')) return '📱'
   if (format.includes('google')) return '🔍'
   if (format.includes('print')) return '🖨️'

@@ -64,7 +64,7 @@ export interface Brand {
 }
 
 export type CampaignStatus = 'draft' | 'scheduled' | 'active' | 'completed' | 'archived'
-export type CampaignChannel = 'facebook' | 'instagram' | 'google' | 'print' | 'display'
+export type CampaignChannel = 'facebook' | 'instagram' | 'linkedin' | 'google' | 'print' | 'display'
 
 export interface Campaign {
   id: string
@@ -86,6 +86,7 @@ export interface Campaign {
 export type TemplateFormat =
   | 'facebook_feed' | 'facebook_story'
   | 'instagram_feed' | 'instagram_story'
+  | 'linkedin_post' | 'linkedin_article'
   | 'google_display' | 'google_search'
   | 'print_a4' | 'print_a5' | 'print_a3'
   | 'email_header'
