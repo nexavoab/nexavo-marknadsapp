@@ -14,29 +14,39 @@ import {
   MessageSquare
 } from 'lucide-react'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
+import type { ToneTraits } from '@/types'
 
-const TONE_LABELS: Record<string, { low: string; high: string }> = {
+const TONE_LABELS = {
   formality: { low: 'Formell', high: 'Avslappnad' },
   modernity: { low: 'Klassisk', high: 'Modern' },
   emotion: { low: 'Saklig', high: 'Varm' },
   volume: { low: 'Subtil', high: 'Bestämd' },
-}
+} as const
 
-function getToneTraitBadges(toneTraits: Record<string, number | undefined> | { formality?: number; modernity?: number; emotion?: number; volume?: number } | null | undefined): string[] {
+function getToneTraitBadges(toneTraits: ToneTraits | null | undefined): string[] {
   if (!toneTraits) return []
   
   const badges: string[] = []
-  const traits = toneTraits as Record<string, number | undefined>
   
-  for (const [key, labels] of Object.entries(TONE_LABELS)) {
-    const value = traits[key] ?? 0.5
-    // Visa label baserat på vilket håll slider lutar
-    if (value >= 0.5) {
-      badges.push(labels.high)
-    } else {
-      badges.push(labels.low)
-    }
-  }
+  // Formality
+  badges.push((toneTraits.formality ?? 0.5) >= 0.5 
+    ? TONE_LABELS.formality.high 
+    : TONE_LABELS.formality.low)
+  
+  // Modernity
+  badges.push((toneTraits.modernity ?? 0.5) >= 0.5 
+    ? TONE_LABELS.modernity.high 
+    : TONE_LABELS.modernity.low)
+  
+  // Emotion
+  badges.push((toneTraits.emotion ?? 0.5) >= 0.5 
+    ? TONE_LABELS.emotion.high 
+    : TONE_LABELS.emotion.low)
+  
+  // Volume
+  badges.push((toneTraits.volume ?? 0.5) >= 0.5 
+    ? TONE_LABELS.volume.high 
+    : TONE_LABELS.volume.low)
   
   return badges
 }
