@@ -590,7 +590,7 @@ export default function CalendarPage() {
                       {/* WAS-412: Scheduled post chips */}
                       {day.isCurrentMonth && postsForDay.length > 0 && (
                         <div className="mt-1 space-y-0.5 overflow-hidden" onClick={(e) => e.stopPropagation()}>
-                          {postsForDay.slice(0, 3).map((post) => {
+                          {postsForDay.slice(0, 2).map((post) => {
                             const channelConfig = CHANNEL_CONFIG[post.channel] || CHANNEL_CONFIG.facebook
                             const statusIcon = post.status === 'draft' ? '📝' : post.status === 'published' ? '✅' : ''
                             
@@ -629,9 +629,9 @@ export default function CalendarPage() {
                               </Popover>
                             )
                           })}
-                          {postsForDay.length > 3 && (
+                          {postsForDay.length > 2 && (
                             <span className="text-[10px] text-muted-foreground pl-1">
-                              +{postsForDay.length - 3} till
+                              +{postsForDay.length - 2} fler
                             </span>
                           )}
                         </div>
