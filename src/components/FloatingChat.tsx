@@ -26,11 +26,18 @@ export function FloatingChat() {
 
     try {
       const history = messages.slice(-10) // Sista 10 meddelanden som kontext
-      const { data } = await supabase.functions.invoke('ai-chat', {
+      const { data, error } = await supabase.functions.invoke('ai-chat', {
         body: { message: userMsg, history, org_id: null }
       })
-      setMessages(prev => [...prev, { role: 'assistant', content: data.reply }])
+      
+      if (error || !data?.reply) {
+        console.error('ai-chat error:', error || 'No reply in response')
+        setMessages(prev => [...prev, { role: 'assistant', content: 'Något gick fel. Försök igen.' }])
+      } else {
+        setMessages(prev => [...prev, { role: 'assistant', content: data.reply }])
+      }
     } catch (e) {
+      console.error('ai-chat exception:', e)
       setMessages(prev => [...prev, { role: 'assistant', content: 'Något gick fel. Försök igen.' }])
     } finally {
       setIsLoading(false)
@@ -40,7 +47,7 @@ export function FloatingChat() {
   return (
     <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-3">
       {isOpen && (
-        <div className="w-80 h-[450px] bg-white rounded-2xl shadow-2xl border flex flex-col overflow-hidden">
+        <div className="w-[calc(100vw-2rem)] sm:w-80 h-[450px] max-h-[80vh] bg-white rounded-2xl shadow-2xl border flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-200">
           {/* Header */}
           <div className="bg-primary p-4 flex items-center justify-between">
             <div className="flex items-center gap-2">
