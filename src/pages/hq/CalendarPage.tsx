@@ -356,8 +356,8 @@ export default function CalendarPage() {
       </div>
 
       {/* Desktop Calendar View */}
-      <Card className="hidden md:block p-4 overflow-x-auto max-w-full">
-        <div className="flex items-center justify-between mb-6 min-w-[600px]">
+      <Card className="hidden md:block p-4 max-w-full">
+        <div className="flex items-center justify-between mb-6 flex-wrap gap-2">
           <Button variant="outline" size="sm" onClick={goToPreviousMonth}>
             <ChevronLeft className="w-4 h-4" />
           </Button>
@@ -386,7 +386,8 @@ export default function CalendarPage() {
             <LoadingSpinner size="lg" />
           </div>
         ) : (
-          <div className="min-w-[600px]">
+          <div className="overflow-x-auto">
+            <div className="min-w-[600px]">
             {/* Month + Year header */}
             <div className="border-b border-border pb-2 mb-0">
               <h3 className="text-base font-bold text-foreground">
@@ -512,6 +513,7 @@ export default function CalendarPage() {
                 </p>
               </div>
             )}
+            </div>
           </div>
         )}
       </Card>

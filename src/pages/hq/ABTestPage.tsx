@@ -234,16 +234,16 @@ function VariantColumn({
   const sparkColor = isWinner ? '#22c55e' : '#94a3b8'
   
   return (
-    <div className={`flex-1 rounded-lg p-4 ${borderClass}`}>
-      <div className="flex items-center justify-between mb-2">
-        <span className="font-medium text-sm">{variant.label}</span>
+    <div className={`w-full rounded-lg p-3 sm:p-4 ${borderClass}`}>
+      <div className="flex items-start sm:items-center justify-between mb-2 gap-2 flex-wrap">
+        <span className="font-medium text-xs sm:text-sm">{variant.label}</span>
         {isWinner && (
-          <Badge className="bg-green-600 text-white hover:bg-green-600">🏆 Vinnare</Badge>
+          <Badge className="bg-green-600 text-white hover:bg-green-600 text-xs">🏆 Vinnare</Badge>
         )}
       </div>
-      <p className="text-sm text-muted-foreground italic mb-4">"{variant.copy}"</p>
+      <p className="text-xs sm:text-sm text-muted-foreground italic mb-3 sm:mb-4 break-words">"{variant.copy}"</p>
       
-      <div className="grid grid-cols-2 gap-3 text-sm mb-3">
+      <div className="grid grid-cols-2 gap-2 sm:gap-3 text-xs sm:text-sm mb-3">
         <div>
           <span className="text-muted-foreground">Räckvidd</span>
           <p className="font-semibold">{variant.reach.toLocaleString('sv-SE')}</p>
@@ -289,8 +289,8 @@ function TestCard({ test }: { test: ABTest }) {
           <StatusBadge status={test.status} />
         </div>
       </CardHeader>
-      <CardContent>
-        <div className="flex flex-col md:flex-row gap-4">
+      <CardContent className="p-3 sm:p-6">
+        <div className="flex flex-col gap-4">
           <VariantColumn 
             variant={test.variantA} 
             isWinner={test.winner === 'A'} 
@@ -343,11 +343,13 @@ export default function ABTestPage() {
         <p className="text-muted-foreground mt-1">Jämför varianter för inlägg, artiklar och hemsida.</p>
       </div>
       <Tabs value={activeTab} onValueChange={handleTabChange}>
-        <TabsList>
-          <TabsTrigger value="posts">📱 Inlägg</TabsTrigger>
-          <TabsTrigger value="articles">📝 Artiklar</TabsTrigger>
-          <TabsTrigger value="website">🌐 Hemsida</TabsTrigger>
-        </TabsList>
+        <div className="overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0">
+          <TabsList className="w-max md:w-auto">
+            <TabsTrigger value="posts" className="text-xs sm:text-sm">📱 Inlägg</TabsTrigger>
+            <TabsTrigger value="articles" className="text-xs sm:text-sm">📝 Artiklar</TabsTrigger>
+            <TabsTrigger value="website" className="text-xs sm:text-sm">🌐 Hemsida</TabsTrigger>
+          </TabsList>
+        </div>
         <TabsContent value="posts">
           <TestList tests={AB_TESTS.posts} />
         </TabsContent>

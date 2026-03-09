@@ -4,7 +4,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const OPENCLAW_URL = "https://minotaur-romeo.exe.xyz:18789/hooks/agent";
+const OPENCLAW_URL = "https://minotaur-romeo.tail4c70a1.ts.net/hooks/agent";
 
 interface TaskRequest {
   task_id: string;

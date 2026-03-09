@@ -237,14 +237,14 @@ function TopbarFilters() {
 
   return (
     <>
-      {/* Period Filter */}
-      <div ref={periodRef} className="relative">
+      {/* Period Filter - hidden on smallest screens */}
+      <div ref={periodRef} className="relative hidden sm:block">
         <button
           onClick={() => setPeriodOpen(!periodOpen)}
-          className="flex items-center gap-2 px-3 py-1.5 text-sm bg-muted/50 hover:bg-muted rounded-lg border border-border transition-colors"
+          className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1.5 text-xs sm:text-sm bg-muted/50 hover:bg-muted rounded-lg border border-border transition-colors"
         >
           <Calendar className="h-4 w-4 text-muted-foreground" />
-          <span>{periodLabel}</span>
+          <span className="hidden md:inline">{periodLabel}</span>
           <ChevronDown className={cn('h-3 w-3 text-muted-foreground transition-transform', periodOpen && 'rotate-180')} />
         </button>
         {periodOpen && (
@@ -265,14 +265,14 @@ function TopbarFilters() {
         )}
       </div>
 
-      {/* Region Filter */}
-      <div ref={regionRef} className="relative">
+      {/* Region Filter - hidden on smallest screens */}
+      <div ref={regionRef} className="relative hidden md:block">
         <button
           onClick={() => setRegionOpen(!regionOpen)}
-          className="flex items-center gap-2 px-3 py-1.5 text-sm bg-muted/50 hover:bg-muted rounded-lg border border-border transition-colors"
+          className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1.5 text-xs sm:text-sm bg-muted/50 hover:bg-muted rounded-lg border border-border transition-colors"
         >
           <MapPin className="h-4 w-4 text-muted-foreground" />
-          <span>{regionLabel}</span>
+          <span className="hidden lg:inline">{regionLabel}</span>
           <ChevronDown className={cn('h-3 w-3 text-muted-foreground transition-transform', regionOpen && 'rotate-180')} />
         </button>
         {regionOpen && (
@@ -302,15 +302,15 @@ function TopbarFilters() {
         )}
       </div>
 
-      {/* Command Palette Trigger - wider, central search */}
-      <div ref={commandRef} className="relative flex-1 max-w-xl">
+      {/* Command Palette Trigger - responsive search */}
+      <div ref={commandRef} className="relative flex-1 min-w-0 max-w-xl">
         <button
           onClick={() => setCommandOpen(true)}
-          className="w-full flex items-center gap-3 px-4 py-2 text-sm text-muted-foreground bg-muted/30 hover:bg-muted/50 rounded-xl border border-border/50 transition-colors"
+          className="w-full flex items-center gap-2 sm:gap-3 px-2 sm:px-4 py-1.5 sm:py-2 text-sm text-muted-foreground bg-muted/30 hover:bg-muted/50 rounded-lg sm:rounded-xl border border-border/50 transition-colors"
         >
-          <Search className="h-4 w-4" />
-          <span className="flex-1 text-left">Sök i appen...</span>
-          <kbd className="text-xs bg-background/80 px-2 py-0.5 rounded-md border border-border">⌘K</kbd>
+          <Search className="h-4 w-4 flex-shrink-0" />
+          <span className="flex-1 text-left truncate text-xs sm:text-sm">Sök...</span>
+          <kbd className="hidden sm:inline text-xs bg-background/80 px-2 py-0.5 rounded-md border border-border">⌘K</kbd>
         </button>
         
         {/* Command Palette Modal */}
@@ -471,11 +471,11 @@ function HQLayoutInner() {
 
       {/* Main content */}
       <div className={cn(
-        'flex flex-col min-h-screen transition-all duration-200 overflow-x-hidden',
+        'flex flex-col min-h-screen transition-all duration-200 overflow-x-hidden w-full max-w-full',
         sidebarCollapsed ? 'lg:ml-16' : 'lg:ml-64'
       )}>
         {/* Topbar */}
-        <header className="sticky top-0 z-30 flex h-14 items-center gap-2 md:gap-3 border-b border-border bg-card px-2 md:px-4 lg:px-6 min-w-0 overflow-x-auto">
+        <header className="sticky top-0 z-30 flex h-14 items-center gap-1 sm:gap-2 md:gap-3 border-b border-border bg-card px-2 md:px-4 lg:px-6 min-w-0 max-w-full overflow-hidden">
           {/* Collapse sidebar button (desktop only) */}
           <button
             onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
