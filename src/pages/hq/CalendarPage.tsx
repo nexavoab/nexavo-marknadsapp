@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -16,6 +16,8 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover'
+import { supabase } from '@/lib/supabase'
+import { useAuth } from '@/contexts/AuthContext'
 import type { ScheduledPost, CampaignChannel } from '@/types'
 
 const WEEKDAYS = ['Mån', 'Tis', 'Ons', 'Tor', 'Fre', 'Lör', 'Sön']
@@ -88,7 +90,7 @@ const CHANNEL_CONFIG: Record<CampaignChannel, { abbr: string; bgColor: string; t
   print_flyer: { abbr: 'FL', bgColor: 'bg-amber-700', textColor: 'text-white' },
 }
 
-// WAS-412: Mock scheduled posts (hardcoded until DB is ready)
+// WAS-412: Fallback mock scheduled posts (used when DB is empty or unavailable)
 const mockScheduledPosts: ScheduledPost[] = [
   {
     id: 'post-1',
@@ -142,6 +144,56 @@ const mockScheduledPosts: ScheduledPost[] = [
   },
 ]
 
+// WAS-lager3b: Hook to fetch scheduled posts from Supabase
+function useScheduledPosts(year: number, month: number) {
+  const { appUser } = useAuth()
+  const [posts, setPosts] = useState<ScheduledPost[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    async function fetchPosts() {
+      if (!appUser?.organization_id) {
+        // Fallback to mock data if no org
+        setPosts(mockScheduledPosts)
+        setLoading(false)
+        return
+      }
+
+      const startOfMonth = new Date(year, month, 1).toISOString().split('T')[0]
+      const endOfMonth = new Date(year, month + 1, 0).toISOString().split('T')[0]
+
+      try {
+        const { data, error } = await supabase
+          .from('scheduled_posts')
+          .select('*')
+          .eq('org_id', appUser.organization_id)
+          .gte('scheduled_date', startOfMonth)
+          .lte('scheduled_date', endOfMonth)
+
+        if (error) {
+          console.error('Error fetching scheduled posts:', error)
+          // Fallback to mock data on error
+          setPosts(mockScheduledPosts)
+        } else if (data && data.length > 0) {
+          setPosts(data as ScheduledPost[])
+        } else {
+          // Empty result - use mock data for demo
+          setPosts(mockScheduledPosts)
+        }
+      } catch (err) {
+        console.error('Failed to fetch scheduled posts:', err)
+        setPosts(mockScheduledPosts)
+      }
+
+      setLoading(false)
+    }
+
+    fetchPosts()
+  }, [appUser?.organization_id, year, month])
+
+  return { posts, loading }
+}
+
 export default function CalendarPage() {
   const navigate = useNavigate()
   const { slotsCompat: campaigns, loading } = useCampaignSlots()
@@ -152,6 +204,9 @@ export default function CalendarPage() {
 
   const year = currentDate.getFullYear()
   const month = currentDate.getMonth()
+
+  // WAS-lager3b: Fetch scheduled posts from Supabase
+  const { posts: scheduledPosts, loading: postsLoading } = useScheduledPosts(year, month)
 
   const days = useMemo(() => getMonthDays(year, month), [year, month])
 
@@ -279,9 +334,10 @@ export default function CalendarPage() {
   }
 
   // WAS-412: Group scheduled posts by date for calendar display
+  // WAS-lager3b: Now using Supabase data with fallback
   const postsByDate = useMemo(() => {
     const grouped: Record<string, ScheduledPost[]> = {}
-    mockScheduledPosts.forEach((post) => {
+    scheduledPosts.forEach((post) => {
       const dateKey = post.scheduled_date
       if (!grouped[dateKey]) {
         grouped[dateKey] = []
@@ -289,7 +345,7 @@ export default function CalendarPage() {
       grouped[dateKey].push(post)
     })
     return grouped
-  }, [])
+  }, [scheduledPosts])
 
   // Agenda list for mobile - show campaigns for current month
   const agendaItems = useMemo(() => {
@@ -467,7 +523,7 @@ export default function CalendarPage() {
           <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-green-500 inline-block"/>Avslutad</span>
         </div>
 
-        {loading ? (
+        {(loading || postsLoading) ? (
           <div className="flex justify-center py-16">
             <LoadingSpinner size="lg" />
           </div>
