@@ -38,10 +38,11 @@ import {
 import { toast } from 'sonner'
 import { LocalVariantsTab } from '@/components/campaigns/LocalVariantsTab'
 import { CopyGeneratorSheet } from '@/components/campaigns/CopyGeneratorSheet'
+import { CampaignChat } from '@/components/campaigns/CampaignChat'
 import { DeviceMockup, getFormatDisplayName, getFormatIcon } from '@/components/campaign/DeviceMockup'
 import type { TemplateFormat } from '@/types'
 
-type TabType = 'assets' | 'variants' | 'copy' | 'preview'
+type TabType = 'assets' | 'variants' | 'copy' | 'chat' | 'preview'
 
 const CONTENT_PILLAR_LABELS: Record<number, { label: string; color: string }> = {
   1: { label: 'Pelare 1', color: 'bg-blue-100 text-blue-800' },
@@ -446,6 +447,18 @@ export default function CampaignDetailPage() {
           <button
             className={cn(
               'px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors flex items-center gap-2',
+              activeTab === 'chat'
+                ? 'border-primary text-primary'
+                : 'border-transparent text-muted-foreground hover:text-foreground'
+            )}
+            onClick={() => setActiveTab('chat')}
+          >
+            <MessageSquare className="w-4 h-4" />
+            💬 Chat
+          </button>
+          <button
+            className={cn(
+              'px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors flex items-center gap-2',
               activeTab === 'preview'
                 ? 'border-primary text-primary'
                 : 'border-transparent text-muted-foreground hover:text-foreground'
@@ -481,6 +494,10 @@ export default function CampaignDetailPage() {
 
       {activeTab === 'copy' && (
         <CopyGeneratorSheet campaign={campaign} />
+      )}
+
+      {activeTab === 'chat' && (
+        <CampaignChat campaign={campaign} />
       )}
 
       {activeTab === 'preview' && (
