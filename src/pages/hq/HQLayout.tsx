@@ -129,8 +129,121 @@ const standaloneNavItems: NavItem[] = [
   { to: '/hq/settings', icon: Settings, label: 'Inställningar' },
 ]
 
+// NavSection component with expand/collapse
+function NavSection({ 
+  section, 
+  collapsed, 
+  onClose,
+  isOpen,
+  onToggle
+}: { 
+  section: NavSectionConfig
+  collapsed: boolean
+  onClose?: () => void
+  isOpen: boolean
+  onToggle: () => void
+}) {
+  const location = useLocation()
+  
+  // Check if any item in this section is active
+  const hasActiveItem = section.items.some(item => {
+    if (item.end) {
+      return location.pathname === item.to
+    }
+    return location.pathname.startsWith(item.to)
+  })
+
+  if (collapsed) {
+    // In collapsed mode, show only icons for items
+    return (
+      <div className="mb-1">
+        {section.items.map((item) => (
+          <NavLink
+            key={item.to}
+            to={item.to}
+            end={item.end}
+            onClick={onClose}
+            title={item.label}
+            className={({ isActive }) =>
+              cn(
+                'flex items-center justify-center rounded-lg p-2 mx-auto w-10 h-10 transition-colors',
+                isActive
+                  ? 'bg-primary/20 text-primary font-medium'
+                  : 'text-slate-400 hover:bg-white/5 hover:text-white'
+              )
+            }
+          >
+            <item.icon className="h-5 w-5" />
+          </NavLink>
+        ))}
+      </div>
+    )
+  }
+
+  return (
+    <div className="mb-1">
+      {/* Section header */}
+      <button
+        onClick={onToggle}
+        className={cn(
+          'w-full flex items-center gap-2 px-3 py-2 text-xs font-semibold uppercase tracking-wider rounded-lg transition-colors',
+          hasActiveItem ? 'text-primary' : 'text-slate-500 hover:text-slate-300'
+        )}
+      >
+        <section.icon className="h-4 w-4" />
+        <span className="flex-1 text-left">{section.label}</span>
+        <ChevronRight 
+          className={cn(
+            'h-4 w-4 transition-transform duration-200',
+            isOpen && 'rotate-90'
+          )} 
+        />
+      </button>
+      
+      {/* Section items */}
+      <div className={cn('overflow-hidden transition-all duration-200', !isOpen && 'hidden')}>
+        {section.items.map((item) => (
+          <NavLink
+            key={item.to}
+            to={item.to}
+            end={item.end}
+            onClick={onClose}
+            className={({ isActive }) =>
+              cn(
+                'flex items-center gap-3 px-3 py-2 pl-9 rounded-lg text-sm transition-colors',
+                isActive
+                  ? 'bg-primary/10 text-primary font-medium'
+                  : 'text-slate-400 hover:bg-white/5 hover:text-white'
+              )
+            }
+          >
+            <item.icon className="h-4 w-4" />
+            {item.label}
+          </NavLink>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 function Sidebar({ onClose, collapsed = false }: { onClose?: () => void; collapsed?: boolean }) {
   const { appUser, signOut } = useAuth()
+  
+  // Section open state - initialize from defaultOpen values
+  const [openSections, setOpenSections] = useState<Record<string, boolean>>(() => {
+    const initial: Record<string, boolean> = {}
+    navSections.forEach(section => {
+      initial[section.id] = section.defaultOpen
+    })
+    return initial
+  })
+
+  const toggleSection = (sectionId: string) => {
+    setOpenSections(prev => ({
+      ...prev,
+      [sectionId]: !prev[sectionId]
+    }))
+  }
 
   return (
     <aside className="flex flex-col h-full bg-slate-900 text-white">
@@ -147,13 +260,25 @@ function Sidebar({ onClose, collapsed = false }: { onClose?: () => void; collaps
         )}
       </div>
       <Separator className="bg-slate-700" />
-      {!collapsed && (
-        <div className="px-4 pt-4 pb-2">
-          <span className="text-xs font-medium text-slate-500 uppercase tracking-wider">Huvudmeny</span>
-        </div>
-      )}
-      <nav className={cn('flex-1', collapsed ? 'p-1' : 'p-2')}>
-        {navItems.map((item) => (
+      
+      <nav className={cn('flex-1 overflow-y-auto', collapsed ? 'p-1' : 'p-2')}>
+        {/* Intention-based sections */}
+        {navSections.map((section) => (
+          <NavSection
+            key={section.id}
+            section={section}
+            collapsed={collapsed}
+            onClose={onClose}
+            isOpen={openSections[section.id] ?? section.defaultOpen}
+            onToggle={() => toggleSection(section.id)}
+          />
+        ))}
+        
+        {/* Separator before standalone items */}
+        {!collapsed && <Separator className="bg-slate-700 my-2" />}
+        
+        {/* Standalone items (Settings) */}
+        {standaloneNavItems.map((item) => (
           <NavLink
             key={item.to}
             to={item.to}
@@ -165,7 +290,7 @@ function Sidebar({ onClose, collapsed = false }: { onClose?: () => void; collaps
                 'flex items-center rounded-lg text-sm transition-colors',
                 collapsed ? 'justify-center p-2 mx-auto w-10 h-10' : 'gap-3 px-3 py-2',
                 isActive
-                  ? 'bg-white/10 text-white font-medium'
+                  ? 'bg-primary/10 text-primary font-medium'
                   : 'text-slate-400 hover:bg-white/5 hover:text-white'
               )
             }
@@ -175,6 +300,7 @@ function Sidebar({ onClose, collapsed = false }: { onClose?: () => void; collaps
           </NavLink>
         ))}
       </nav>
+      
       <Separator className="bg-slate-700" />
       <div className={cn('p-4', collapsed && 'p-2')}>
         {!collapsed && (
