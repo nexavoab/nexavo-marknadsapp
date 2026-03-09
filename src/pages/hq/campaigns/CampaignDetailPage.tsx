@@ -36,8 +36,20 @@ import {
   Monitor,
   ShieldCheck,
   ShieldX,
+  Share2,
+  Facebook,
+  Check,
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { supabase } from '@/lib/supabase'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog'
 import { LocalVariantsTab } from '@/components/campaigns/LocalVariantsTab'
 import { CopyGeneratorSheet } from '@/components/campaigns/CopyGeneratorSheet'
 import { CampaignChat } from '@/components/campaigns/CampaignChat'
@@ -82,6 +94,22 @@ const CHANNEL_LABELS: Record<CampaignChannel, string> = {
 const ALL_CHANNELS: CampaignChannel[] = ['facebook', 'instagram', 'google', 'print', 'display', 'linkedin', 'tiktok', 'email', 'print_flyer']
 const ALL_STATUSES: CampaignStatus[] = ['draft', 'scheduled', 'active', 'completed', 'archived']
 
+// Meta/Facebook pages available for publishing
+const META_PAGES = [
+  { id: '582048978317091', name: 'Seniorbolaget Sverige' },
+  { id: '532949189893176', name: 'Seniorbolaget Skaraborg' },
+  { id: '690852324112544', name: 'Seniorbolaget Falkenberg & Varberg' },
+  { id: '731909380006311', name: 'Seniorbolaget Lerum & Partille' },
+  { id: '848116255042805', name: 'Seniorbolaget Trollhättan / Vänersborg' },
+  { id: '953952134460637', name: 'Seniorbolaget Borås' },
+  { id: '943525188836962', name: 'Seniorbolaget Sundsvall & Timrå' },
+  { id: '908759378992047', name: 'Seniorbolaget Mölndal och Härryda' },
+  { id: '997121616808598', name: 'Seniorbolaget Kungälv' },
+  { id: '915601934977862', name: 'Seniorbolaget Ulricehamn' },
+  { id: '993940537134261', name: 'Seniorbolaget Trelleborg' },
+  { id: '1001959409667574', name: 'Seniorbolaget Åmål' },
+]
+
 export default function CampaignDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
@@ -109,6 +137,12 @@ export default function CampaignDetailPage() {
   // Brand Guardian state
   const [guardianResult, setGuardianResult] = useState<BrandGuardianResult | null>(null)
   const [showManualApproveDialog, setShowManualApproveDialog] = useState(false)
+  
+  // WAS-416: Meta publishing state
+  const [isPublishDialogOpen, setIsPublishDialogOpen] = useState(false)
+  const [selectedPageIds, setSelectedPageIds] = useState<string[]>([])
+  const [isPublishing, setIsPublishing] = useState(false)
+  const [customMessage, setCustomMessage] = useState('')
 
   useEffect(() => {
     if (id) loadCampaign(id)
@@ -274,6 +308,78 @@ export default function CampaignDetailPage() {
     await handleToggleHqApproved(true)
   }
 
+  // WAS-416: Toggle page selection for Meta publishing
+  const handleTogglePage = (pageId: string) => {
+    setSelectedPageIds(prev => 
+      prev.includes(pageId) 
+        ? prev.filter(id => id !== pageId)
+        : [...prev, pageId]
+    )
+  }
+
+  // WAS-416: Select/deselect all pages
+  const handleSelectAllPages = () => {
+    if (selectedPageIds.length === META_PAGES.length) {
+      setSelectedPageIds([])
+    } else {
+      setSelectedPageIds(META_PAGES.map(p => p.id))
+    }
+  }
+
+  // WAS-416: Publish to Meta (Facebook/Instagram)
+  const handlePublishToMeta = async () => {
+    if (!campaign || selectedPageIds.length === 0) return
+
+    setIsPublishing(true)
+    try {
+      const { data, error } = await supabase.functions.invoke('publish-to-meta', {
+        body: {
+          campaign_id: campaign.id,
+          page_ids: selectedPageIds,
+          message: customMessage || undefined,
+        },
+      })
+
+      if (error) {
+        throw new Error(error.message || 'Kunde inte publicera till Meta')
+      }
+
+      if (data?.ok) {
+        const { summary } = data
+        toast.success(
+          `✅ Publicerat till ${summary.successful} av ${summary.total} sidor`,
+          { duration: 5000 }
+        )
+        
+        // Update local campaign status if it was updated
+        if (summary.successful > 0) {
+          setCampaign({ ...campaign, status: 'published' as CampaignStatus })
+        }
+
+        // Show details for any failures
+        if (summary.failed > 0) {
+          const failedPages = data.published
+            .filter((p: { error?: string }) => p.error)
+            .map((p: { page_name: string; error: string }) => `${p.page_name}: ${p.error}`)
+            .join('\n')
+          console.error('[Meta Publish] Failures:', failedPages)
+          toast.error(`${summary.failed} sidor misslyckades`, { duration: 5000 })
+        }
+
+        setIsPublishDialogOpen(false)
+        setSelectedPageIds([])
+        setCustomMessage('')
+      } else {
+        throw new Error(data?.error || 'Publicering misslyckades')
+      }
+    } catch (err) {
+      console.error('[Meta Publish] Error:', err)
+      toast.error(err instanceof Error ? err.message : 'Kunde inte publicera till Meta')
+    } finally {
+      setIsPublishing(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className="p-8 flex items-center justify-center">
@@ -370,6 +476,15 @@ export default function CampaignDetailPage() {
           <Button variant="outline" onClick={handleDuplicate}>
             <Copy className="w-4 h-4 mr-1" />
             Duplicera
+          </Button>
+          {/* WAS-416: Publish to Meta button */}
+          <Button 
+            variant="outline" 
+            onClick={() => setIsPublishDialogOpen(true)}
+            className="border-blue-500 text-blue-600 hover:bg-blue-50"
+          >
+            <Share2 className="w-4 h-4 mr-1" />
+            Publicera på Facebook
           </Button>
           {campaign.status === 'draft' && (
             <Button onClick={() => handleStatusChange('active')}>
@@ -620,6 +735,109 @@ export default function CampaignDetailPage() {
           </div>
         </div>
       )}
+
+      {/* WAS-416: Meta Publishing Dialog */}
+      <Dialog open={isPublishDialogOpen} onOpenChange={setIsPublishDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Facebook className="w-5 h-5 text-blue-600" />
+              Publicera på Facebook
+            </DialogTitle>
+            <DialogDescription>
+              Välj vilka Facebook-sidor du vill publicera kampanjen till.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            {/* Select all toggle */}
+            <div className="flex items-center justify-between pb-2 border-b border-border">
+              <span className="text-sm font-medium">Välj sidor</span>
+              <button
+                type="button"
+                onClick={handleSelectAllPages}
+                className="text-sm text-primary hover:underline"
+              >
+                {selectedPageIds.length === META_PAGES.length ? 'Avmarkera alla' : 'Välj alla'}
+              </button>
+            </div>
+
+            {/* Page checkboxes */}
+            <div className="space-y-2 max-h-60 overflow-y-auto">
+              {META_PAGES.map((page) => (
+                <button
+                  key={page.id}
+                  type="button"
+                  onClick={() => handleTogglePage(page.id)}
+                  className={cn(
+                    'flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors w-full text-left',
+                    selectedPageIds.includes(page.id)
+                      ? 'border-blue-500 bg-blue-50'
+                      : 'border-border hover:bg-muted/50'
+                  )}
+                >
+                  <div
+                    className={cn(
+                      'w-5 h-5 rounded border flex items-center justify-center transition-colors',
+                      selectedPageIds.includes(page.id)
+                        ? 'bg-blue-600 border-blue-600'
+                        : 'border-muted-foreground'
+                    )}
+                  >
+                    {selectedPageIds.includes(page.id) && (
+                      <Check className="w-3 h-3 text-white" />
+                    )}
+                  </div>
+                  <span className="text-sm">{page.name}</span>
+                </button>
+              ))}
+            </div>
+
+            {/* Custom message (optional) */}
+            <div className="pt-2">
+              <label className="block text-sm font-medium mb-1">
+                Anpassat meddelande (valfritt)
+              </label>
+              <textarea
+                className="w-full min-h-[80px] px-3 py-2 rounded-md border border-input bg-background text-sm resize-none"
+                placeholder="Lämna tomt för att använda kampanjens standardtext..."
+                value={customMessage}
+                onChange={(e) => setCustomMessage(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Om du lämnar detta tomt används kampanjens namn, beskrivning och nyckelbudskap.
+              </p>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setIsPublishDialogOpen(false)}
+              disabled={isPublishing}
+            >
+              Avbryt
+            </Button>
+            <Button
+              onClick={handlePublishToMeta}
+              disabled={isPublishing || selectedPageIds.length === 0}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              {isPublishing ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                  Publicerar...
+                </>
+              ) : (
+                <>
+                  <Share2 className="w-4 h-4 mr-1" />
+                  Publicera ({selectedPageIds.length})
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
