@@ -46,7 +46,7 @@ Leverera JSON med format: { "posts": [{ "platform": "...", "headline": "...", "c
 TASK_ID: ${payload.task_id || ""}
 
 VIKTIGT: När du är klar med copy-genereringen, skriv tillbaka resultatet till Supabase.
-Använd EXAKT denna curl-syntax (kolumn heter output_payload, INTE result):
+Använd EXAKT denna curl-syntax (kolumn heter result, INTE result):
 
 TASK_ID="${payload.task_id || ""}"
 TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
@@ -55,7 +55,7 @@ curl -X PATCH "https://fotrwcwjvchqjfvnzven.supabase.co/rest/v1/ai_tasks?id=eq.$
   -H "apikey: $SUPABASE_KEY" \\
   -H "Authorization: Bearer $SUPABASE_KEY" \\
   -H "Content-Type: application/json" \\
-  -d '{"status": "completed", "output_payload": <DIN_GENERERADE_JSON>, "completed_at": "'"$TIMESTAMP"'"}'
+  -d '{"status": "completed", "result": <DIN_GENERERADE_JSON>, "completed_at": "'"$TIMESTAMP"'"}'
 
 Där <DIN_GENERERADE_JSON> är din genererade JSON med posts-arrayen, t.ex.:
 {"posts": [{"platform": "instagram", "headline": "...", "copy": "...", "cta": "..."}]}`;

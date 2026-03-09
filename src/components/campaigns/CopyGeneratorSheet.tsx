@@ -225,7 +225,7 @@ export function CopyGeneratorSheet({ campaign }: CopyGeneratorSheetProps) {
           org_id: campaign.organization_id,
           task_type: 'generate-copy',
           status: 'pending',
-          input_payload: {
+          payload: {
             campaign_id: campaign.id,
             campaign_name: campaign.name,
             formats: selectedFormats,
@@ -287,16 +287,16 @@ export function CopyGeneratorSheet({ campaign }: CopyGeneratorSheetProps) {
         
         const { data: taskStatus } = await supabase
           .from('ai_tasks')
-          .select('status, output_payload')
+          .select('status, result')
           .eq('id', task.id)
           .single()
         
-        if (taskStatus?.status === 'completed' && taskStatus.output_payload) {
+        if (taskStatus?.status === 'completed' && taskStatus.result) {
           clearInterval(interval)
           setIsOpenClawLoading(false)
           
           // Mappa output_payload.posts till CopyResult[]
-          const outputPayload = taskStatus.output_payload as { posts?: Array<Record<string, unknown>> }
+          const outputPayload = taskStatus.result as { posts?: Array<Record<string, unknown>> }
           const posts = outputPayload.posts || []
           const mapped: CopyResult[] = posts.map((p: Record<string, unknown>) => ({
             type: String(p.platform || 'instagram'),
