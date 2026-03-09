@@ -48,6 +48,14 @@ const CHANNEL_ICONS: Record<CampaignChannel, string> = {
   print_flyer: '🖨️',
 }
 
+const CONTENT_PILLAR_LABELS: Record<number, { label: string; color: string }> = {
+  1: { label: 'P1', color: 'bg-blue-100 text-blue-800' },
+  2: { label: 'P2', color: 'bg-purple-100 text-purple-800' },
+  3: { label: 'P3', color: 'bg-green-100 text-green-800' },
+  4: { label: 'P4', color: 'bg-orange-100 text-orange-800' },
+  5: { label: 'P5', color: 'bg-pink-100 text-pink-800' },
+}
+
 type StatusFilter = 'all' | 'active' | 'scheduled' | 'completed'
 type SortOption = 'newest' | 'oldest' | 'name-asc' | 'name-desc'
 
@@ -473,9 +481,16 @@ function CampaignCard({ campaign, onClick, onView, onEdit, onDuplicate, onArchiv
         <h3 className="font-semibold text-lg group-hover:text-primary transition-colors">
           {campaign.name}
         </h3>
-        <Badge className={cn('text-xs', statusConfig.className)}>
-          {statusConfig.label}
-        </Badge>
+        <div className="flex gap-1">
+          <Badge className={cn('text-xs', statusConfig.className)}>
+            {statusConfig.label}
+          </Badge>
+          {campaign.content_pillar && CONTENT_PILLAR_LABELS[campaign.content_pillar] && (
+            <Badge className={cn('text-xs', CONTENT_PILLAR_LABELS[campaign.content_pillar].color)}>
+              {CONTENT_PILLAR_LABELS[campaign.content_pillar].label}
+            </Badge>
+          )}
+        </div>
       </div>
 
       {/* Description */}

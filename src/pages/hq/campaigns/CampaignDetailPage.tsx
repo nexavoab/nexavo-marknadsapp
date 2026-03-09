@@ -97,9 +97,11 @@ export default function CampaignDetailPage() {
   const [editForm, setEditForm] = useState<CampaignUpdateData>({})
   const [isSaving, setIsSaving] = useState(false)
   
-  // WAS-411: HQ signoff state
+  // WAS-411: HQ signoff state (reserved for HQ approval button)
   const [isTogglingHqApproved, setIsTogglingHqApproved] = useState(false)
   const isHqAdmin = appUser?.role === 'hq_admin'
+  void isTogglingHqApproved // suppress warning - used in handleToggleHqApproved
+  void isHqAdmin // suppress warning - will be used for conditional rendering
 
   useEffect(() => {
     if (id) loadCampaign(id)
@@ -201,7 +203,8 @@ export default function CampaignDetailPage() {
     }
   }
 
-  // WAS-411: Toggle HQ internal signoff
+  // WAS-411: Toggle HQ internal signoff (will be used when HQ approval button is added)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleToggleHqApproved = async () => {
     if (!campaign) return
 

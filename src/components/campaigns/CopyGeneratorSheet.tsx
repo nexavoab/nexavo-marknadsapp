@@ -1,14 +1,14 @@
 /**
  * CopyGeneratorSheet
  * WAS-401: AI copy-generator för kampanjer
+ * WAS-407: Kopplad till copy-engine Edge Function
  * Genererar copy för olika format baserat på kampanj och brand context
  */
 
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { useBrand } from '@/hooks/useBrand'
-import { useAIGateway, type CampaignPackResponse } from '@/hooks/useAIGateway'
-import { adaptBrandForAI } from '@/lib/brandContextAdapter'
+import { supabase } from '@/lib/supabase'
 import type { Campaign } from '@/types'
 import { Loader2, Copy, Check, AlertCircle, Sparkles } from 'lucide-react'
 import { toast } from 'sonner'
@@ -21,6 +21,24 @@ interface CopyGeneratorSheetProps {
 
 type CopyFormat = 'instagram-post' | 'facebook-ad' | 'google-display' | 'email' | 'print-flyer'
 
+// Mappa UI-format till copy-engine channel
+const FORMAT_TO_CHANNEL: Record<CopyFormat, string> = {
+  'instagram-post': 'instagram',
+  'facebook-ad': 'meta',
+  'google-display': 'google_display',
+  'email': 'email',
+  'print-flyer': 'website', // print hanteras som website-copy
+}
+
+// Mappa UI-format till copy-engine mode
+const FORMAT_TO_MODE: Record<CopyFormat, string> = {
+  'instagram-post': 'post',
+  'facebook-ad': 'ad',
+  'google-display': 'ad',
+  'email': 'email',
+  'print-flyer': 'landing_page',
+}
+
 const FORMAT_CONFIG: Record<CopyFormat, { label: string; description: string }> = {
   'instagram-post': { label: 'Instagram Post', description: 'Engagerande text för Instagram-flödet' },
   'facebook-ad': { label: 'Facebook Annons', description: 'Annonstext för Facebook Ads' },
@@ -31,13 +49,46 @@ const FORMAT_CONFIG: Record<CopyFormat, { label: string; description: string }> 
 
 const ALL_FORMATS: CopyFormat[] = ['instagram-post', 'facebook-ad', 'google-display', 'email', 'print-flyer']
 
+// Typ för copy-engine response
+interface CopyEngineVariant {
+  variant_id: string
+  hypothesis?: string
+  text_blocks: {
+    headline?: string
+    hook?: string
+    primary_text?: string
+    body?: string
+    cta?: string
+    description?: string
+    [key: string]: string | undefined
+  }
+  explanation?: Record<string, unknown>
+  policy_flags?: Array<{ type: string; message: string }>
+}
+
+interface CopyEngineResponse {
+  variants: CopyEngineVariant[]
+  global_suggestions?: Record<string, unknown>
+  needs_clarification?: boolean
+  clarification_questions?: string[]
+  _source?: string
+}
+
+// Typ för UI-resultat (samma som tidigare CampaignPackResponse['formats'])
+interface CopyResult {
+  type: string
+  headline: string
+  copy: string
+  cta: string
+  character_count?: number
+}
+
 export function CopyGeneratorSheet({ campaign }: CopyGeneratorSheetProps) {
   const { brand, loading: brandLoading } = useBrand()
-  const { generateCampaignPack } = useAIGateway()
 
   const [selectedFormats, setSelectedFormats] = useState<CopyFormat[]>(['instagram-post', 'facebook-ad'])
   const [isGenerating, setIsGenerating] = useState(false)
-  const [results, setResults] = useState<CampaignPackResponse['formats'] | null>(null)
+  const [results, setResults] = useState<CopyResult[] | null>(null)
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null)
 
   const handleFormatToggle = (format: CopyFormat) => {
@@ -61,19 +112,83 @@ export function CopyGeneratorSheet({ campaign }: CopyGeneratorSheetProps) {
     setResults(null)
 
     try {
-      const brandContext = adaptBrandForAI(brand)
+      // Generera copy för varje valt format via copy-engine
+      const allResults: CopyResult[] = []
       
-      const response = await generateCampaignPack({
-        brandContext,
-        concept: {
-          headline: campaign.name,
-          keyMessage: campaign.description || '',
-        },
-        formats: selectedFormats,
-      })
+      for (const format of selectedFormats) {
+        const channel = FORMAT_TO_CHANNEL[format]
+        const mode = FORMAT_TO_MODE[format]
+        
+        // Bygg payload för copy-engine
+        const payload = {
+          brand_context: {
+            brand_id: brand.id,
+            org_id: campaign.organization_id,
+            guide_mode: 'PUBLISHED',
+          },
+          copy_context: {
+            mode,
+            channel,
+            funnel_stage: 'consideration',
+            persona_id: typeof campaign.target_persona === 'string' 
+              ? campaign.target_persona 
+              : undefined,
+            goal: campaign.description || campaign.name,
+            constraints: {
+              max_variants: 1, // En variant per format
+            },
+          },
+          input: {
+            brief: `Kampanj: ${campaign.name}. ${campaign.description || ''}. Kanaler: ${campaign.channels.join(', ')}.`,
+          },
+        }
 
-      setResults(response.formats)
-      toast.success('Copy genererad!')
+        const { data, error } = await supabase.functions.invoke<CopyEngineResponse>('copy-engine', {
+          body: payload,
+        })
+
+        if (error) {
+          console.error(`copy-engine error for ${format}:`, error)
+          throw new Error(`Fel vid generering av ${FORMAT_CONFIG[format].label}: ${error.message}`)
+        }
+
+        if (!data?.variants || data.variants.length === 0) {
+          console.warn(`No variants returned for ${format}`)
+          continue
+        }
+
+        // Extrahera första varianten och mappa till UI-format
+        const variant = data.variants[0]
+        const textBlocks = variant.text_blocks || {}
+        
+        // Bygg copy-text från tillgängliga fält
+        const copyParts: string[] = []
+        if (textBlocks.hook) copyParts.push(textBlocks.hook)
+        if (textBlocks.primary_text) copyParts.push(textBlocks.primary_text)
+        if (textBlocks.body) copyParts.push(textBlocks.body)
+        if (textBlocks.description) copyParts.push(textBlocks.description)
+        
+        const headline = textBlocks.headline || textBlocks.hook || ''
+        const copy = copyParts.join('\n\n') || JSON.stringify(textBlocks)
+        const cta = textBlocks.cta || ''
+        
+        const fullText = `${headline}\n${copy}\n${cta}`
+        
+        allResults.push({
+          type: format,
+          headline,
+          copy,
+          cta,
+          character_count: fullText.length,
+        })
+      }
+
+      if (allResults.length === 0) {
+        throw new Error('Ingen copy kunde genereras. Försök igen.')
+      }
+
+      setResults(allResults)
+      toast.success(`${allResults.length} format genererade!`)
     } catch (err) {
       console.error('AI generation error:', err)
       toast.error(err instanceof Error ? err.message : 'Kunde inte generera copy. Försök igen.')
