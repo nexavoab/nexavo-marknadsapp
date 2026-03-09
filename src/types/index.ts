@@ -84,6 +84,8 @@ export interface Campaign {
   updated_at: string
   rejection_comment?: string
   local_customization?: { phone?: string; city?: string; contactName?: string }
+  content_pillar?: number  // 1-5, innehållspelare från publiceringskalendern
+  hq_approved?: boolean  // WAS-411: Internal HQ signoff - franchise only sees approved campaigns
 }
 
 export type TemplateFormat =

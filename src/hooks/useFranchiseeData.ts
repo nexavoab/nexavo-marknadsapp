@@ -15,10 +15,12 @@ export function useFranchiseeData() {
     try {
       setLoading(true)
       setError(null)
+      // WAS-411: Filter only hq_approved campaigns for franchise users
       const { data, error } = await supabase
         .from('campaigns')
-        .select('id, name, description, status, channels, start_date, end_date, created_at')
+        .select('id, name, description, status, channels, start_date, end_date, created_at, hq_approved')
         .eq('organization_id', appUser.organization_id)
+        .eq('hq_approved', true)
         .order('created_at', { ascending: false })
 
       if (error) throw error
@@ -58,7 +60,7 @@ export function useFranchiseeData() {
 
     const { data, error } = await supabase
       .from('campaigns')
-      .select('id, name, description, status, channels, start_date, end_date, created_at')
+      .select('id, name, description, status, channels, start_date, end_date, created_at, local_customization, hq_approved')
       .eq('id', campaignId)
       .eq('organization_id', appUser.organization_id)
       .single()

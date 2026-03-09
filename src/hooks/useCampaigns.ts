@@ -17,6 +17,7 @@ export interface CampaignUpdateData {
   end_date?: string | null
   target_persona?: Record<string, unknown> | string | null
   key_messages?: string[]
+  content_pillar?: number | null  // 1-5, innehållspelare från publiceringskalendern
 }
 
 interface UseCampaignsReturn {
@@ -25,6 +26,7 @@ interface UseCampaignsReturn {
   createCampaign: (draft: CampaignDraft) => Promise<Campaign>
   updateCampaign: (campaignId: string, data: CampaignUpdateData) => Promise<Campaign>
   updateCampaignStatus: (campaignId: string, status: CampaignStatus) => Promise<void>
+  updateHqApproved: (campaignId: string, approved: boolean) => Promise<void>
   duplicateCampaign: (campaignId: string) => Promise<Campaign>
   archiveCampaign: (campaignId: string) => Promise<void>
   loading: boolean
@@ -44,7 +46,7 @@ export function useCampaigns(): UseCampaignsReturn {
 
     const { data, error } = await supabase
       .from('campaigns')
-      .select('id, name, description, status, channels, start_date, end_date, created_at, organization_id')
+      .select('id, name, description, status, channels, start_date, end_date, created_at, organization_id, hq_approved, content_pillar')
       .eq('organization_id', appUser.organization_id)
       .order('created_at', { ascending: false })
 
@@ -62,7 +64,7 @@ export function useCampaigns(): UseCampaignsReturn {
 
     const { data, error } = await supabase
       .from('campaigns')
-      .select('id, name, description, status, channels, start_date, end_date, created_at, updated_at, organization_id, brand_id, target_persona, key_messages, created_by')
+      .select('id, name, description, status, channels, start_date, end_date, created_at, updated_at, organization_id, brand_id, target_persona, key_messages, created_by, hq_approved, content_pillar')
       .eq('id', id)
       .eq('organization_id', appUser.organization_id)
       .single()
@@ -146,7 +148,7 @@ export function useCampaigns(): UseCampaignsReturn {
         .update({ ...data, updated_at: new Date().toISOString() })
         .eq('id', campaignId)
         .eq('organization_id', appUser.organization_id)
-        .select('id, name, description, status, channels, start_date, end_date, created_at, updated_at, organization_id, brand_id, target_persona, key_messages, created_by')
+        .select('id, name, description, status, channels, start_date, end_date, created_at, updated_at, organization_id, brand_id, target_persona, key_messages, created_by, content_pillar')
         .single()
 
       if (error) throw new Error(`Update error: ${error.message}`)
@@ -186,9 +188,10 @@ export function useCampaigns(): UseCampaignsReturn {
           end_date: original.end_date,
           target_persona: original.target_persona,
           key_messages: original.key_messages,
+          content_pillar: original.content_pillar,
           created_by: appUser.id,
         })
-        .select('id, name, description, status, channels, start_date, end_date, created_at, updated_at, organization_id, brand_id, target_persona, key_messages, created_by')
+        .select('id, name, description, status, channels, start_date, end_date, created_at, updated_at, organization_id, brand_id, target_persona, key_messages, created_by, content_pillar')
         .single()
 
       if (error) throw new Error(`Duplicate error: ${error.message}`)
@@ -205,12 +208,30 @@ export function useCampaigns(): UseCampaignsReturn {
     await updateCampaignStatus(campaignId, 'archived')
   }
 
+  /**
+   * WAS-411: Uppdaterar intern HQ-signoff status
+   */
+  async function updateHqApproved(campaignId: string, approved: boolean): Promise<void> {
+    if (!appUser?.organization_id) {
+      throw new Error('Ej inloggad')
+    }
+
+    const { error } = await supabase
+      .from('campaigns')
+      .update({ hq_approved: approved, updated_at: new Date().toISOString() })
+      .eq('id', campaignId)
+      .eq('organization_id', appUser.organization_id)
+
+    if (error) throw new Error(`Update error: ${error.message}`)
+  }
+
   return {
     fetchCampaigns,
     fetchCampaign,
     createCampaign,
     updateCampaign,
     updateCampaignStatus,
+    updateHqApproved,
     duplicateCampaign,
     archiveCampaign,
     loading,

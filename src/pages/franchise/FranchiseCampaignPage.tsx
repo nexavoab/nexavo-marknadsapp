@@ -26,6 +26,9 @@ import {
   MapPin,
   User,
   Loader2,
+  Download,
+  FileImage,
+  FolderOpen,
 } from 'lucide-react'
 
 interface LocalCustomization {
@@ -285,6 +288,68 @@ export default function FranchiseCampaignPage() {
             ) : (
               <div className="text-center text-muted-foreground py-12">
                 <p>Inget material tillgängligt för förhandsvisning</p>
+              </div>
+            )}
+          </div>
+
+          {/* WAS-408: Materialbank - Download section */}
+          <div className="bg-card rounded-lg border border-border p-6 space-y-4">
+            <h3 className="font-semibold text-foreground flex items-center gap-2">
+              <FileImage className="w-5 h-5" />
+              Materialbank
+            </h3>
+            
+            {assets.length === 0 ? (
+              <div className="text-center py-8">
+                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-muted mb-4">
+                  <FolderOpen className="w-8 h-8 text-muted-foreground" />
+                </div>
+                <h4 className="font-medium text-foreground mb-2">HQ förbereder material...</h4>
+                <p className="text-sm text-muted-foreground max-w-xs mx-auto">
+                  Material för denna kampanj är inte tillgängligt än. Kom tillbaka snart!
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {assets.map((asset) => (
+                  <div
+                    key={asset.id}
+                    className="flex items-center justify-between p-3 bg-muted/50 rounded-lg hover:bg-muted transition-colors"
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      {asset.thumbnail_url || asset.public_url ? (
+                        <img
+                          src={asset.thumbnail_url || asset.public_url}
+                          alt={asset.name}
+                          className="w-12 h-12 rounded object-cover flex-shrink-0"
+                        />
+                      ) : (
+                        <div className="w-12 h-12 rounded bg-muted flex items-center justify-center flex-shrink-0">
+                          <FileImage className="w-6 h-6 text-muted-foreground" />
+                        </div>
+                      )}
+                      <div className="min-w-0">
+                        <p className="font-medium text-sm truncate">{asset.name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {asset.format || asset.type}
+                          {asset.mime_type && ` • ${asset.mime_type.split('/')[1]?.toUpperCase()}`}
+                        </p>
+                      </div>
+                    </div>
+                    
+                    {asset.public_url && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => window.open(asset.public_url, '_blank')}
+                        className="flex-shrink-0"
+                      >
+                        <Download className="w-4 h-4 mr-1" />
+                        Ladda ner
+                      </Button>
+                    )}
+                  </div>
+                ))}
               </div>
             )}
           </div>

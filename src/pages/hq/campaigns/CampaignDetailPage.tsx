@@ -7,6 +7,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useCampaigns, type CampaignUpdateData } from '@/hooks/useCampaigns'
 import { useAssets } from '@/hooks/useAssets'
+import { useAuth } from '@/contexts/AuthContext'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
@@ -30,12 +31,27 @@ import {
   User,
   MessageSquare,
   Sparkles,
+  Monitor,
+  ShieldCheck,
+  ShieldX,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { LocalVariantsTab } from '@/components/campaigns/LocalVariantsTab'
 import { CopyGeneratorSheet } from '@/components/campaigns/CopyGeneratorSheet'
+import { DeviceMockup, getFormatDisplayName, getFormatIcon } from '@/components/campaign/DeviceMockup'
+import type { TemplateFormat } from '@/types'
 
-type TabType = 'assets' | 'variants' | 'copy'
+type TabType = 'assets' | 'variants' | 'copy' | 'preview'
+
+const CONTENT_PILLAR_LABELS: Record<number, { label: string; color: string }> = {
+  1: { label: 'Pelare 1', color: 'bg-blue-100 text-blue-800' },
+  2: { label: 'Pelare 2', color: 'bg-purple-100 text-purple-800' },
+  3: { label: 'Pelare 3', color: 'bg-green-100 text-green-800' },
+  4: { label: 'Pelare 4', color: 'bg-orange-100 text-orange-800' },
+  5: { label: 'Pelare 5', color: 'bg-pink-100 text-pink-800' },
+}
+
+const PREVIEW_FORMATS: TemplateFormat[] = ['facebook_feed', 'instagram_story', 'linkedin_post']
 
 const STATUS_CONFIG: Record<CampaignStatus, { label: string; className: string }> = {
   draft: { label: 'Utkast', className: 'bg-muted text-muted-foreground' },
@@ -66,8 +82,9 @@ const ALL_STATUSES: CampaignStatus[] = ['draft', 'scheduled', 'active', 'complet
 export default function CampaignDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const { fetchCampaign, updateCampaign, updateCampaignStatus, duplicateCampaign, archiveCampaign } = useCampaigns()
+  const { fetchCampaign, updateCampaign, updateCampaignStatus, updateHqApproved, duplicateCampaign, archiveCampaign } = useCampaigns()
   const { fetchAssets } = useAssets()
+  const { appUser } = useAuth()
 
   const [campaign, setCampaign] = useState<Campaign | null>(null)
   const [assets, setAssets] = useState<Asset[]>([])
@@ -79,6 +96,10 @@ export default function CampaignDetailPage() {
   const [isEditOpen, setIsEditOpen] = useState(false)
   const [editForm, setEditForm] = useState<CampaignUpdateData>({})
   const [isSaving, setIsSaving] = useState(false)
+  
+  // WAS-411: HQ signoff state
+  const [isTogglingHqApproved, setIsTogglingHqApproved] = useState(false)
+  const isHqAdmin = appUser?.role === 'hq_admin'
 
   useEffect(() => {
     if (id) loadCampaign(id)
@@ -129,6 +150,7 @@ export default function CampaignDetailPage() {
       end_date: campaign.end_date || '',
       target_persona: campaign.target_persona || null,
       key_messages: campaign.key_messages || [],
+      content_pillar: campaign.content_pillar || null,
     })
     setIsEditOpen(true)
   }
@@ -179,6 +201,27 @@ export default function CampaignDetailPage() {
     }
   }
 
+  // WAS-411: Toggle HQ internal signoff
+  const handleToggleHqApproved = async () => {
+    if (!campaign) return
+
+    setIsTogglingHqApproved(true)
+    try {
+      const newValue = !campaign.hq_approved
+      await updateHqApproved(campaign.id, newValue)
+      setCampaign({ ...campaign, hq_approved: newValue })
+      toast.success(
+        newValue 
+          ? 'Kampanjen är nu internt godkänd och synlig för franchise' 
+          : 'Intern godkännande borttagen - kampanjen är nu dold för franchise'
+      )
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Kunde inte uppdatera intern status')
+    } finally {
+      setIsTogglingHqApproved(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className="p-8 flex items-center justify-center">
@@ -220,6 +263,23 @@ export default function CampaignDetailPage() {
             <Badge className={cn('text-sm', statusConfig.className)}>
               {statusConfig.label}
             </Badge>
+            {campaign.content_pillar && CONTENT_PILLAR_LABELS[campaign.content_pillar] && (
+              <Badge className={cn('text-sm', CONTENT_PILLAR_LABELS[campaign.content_pillar].color)}>
+                {CONTENT_PILLAR_LABELS[campaign.content_pillar].label}
+              </Badge>
+            )}
+            {/* WAS-411: HQ Approval Badge */}
+            {campaign.hq_approved ? (
+              <Badge className="text-sm bg-green-100 text-green-800">
+                <ShieldCheck className="w-3 h-3 mr-1" />
+                Synlig för franchise
+              </Badge>
+            ) : (
+              <Badge className="text-sm bg-amber-100 text-amber-800">
+                <ShieldX className="w-3 h-3 mr-1" />
+                Ej synlig för franchise
+              </Badge>
+            )}
           </div>
           {campaign.description && (
             <p className="text-muted-foreground">{campaign.description}</p>
@@ -269,6 +329,24 @@ export default function CampaignDetailPage() {
             <Button variant="ghost" onClick={handleArchive}>
               <Archive className="w-4 h-4 mr-1" />
               Arkivera
+            </Button>
+          )}
+          {/* WAS-411: HQ Internal Signoff - only visible for hq_admin */}
+          {isHqAdmin && (
+            <Button
+              variant={campaign.hq_approved ? 'outline' : 'default'}
+              onClick={handleToggleHqApproved}
+              disabled={isTogglingHqApproved}
+              className={campaign.hq_approved ? 'border-green-500 text-green-700 hover:bg-green-50' : ''}
+            >
+              {isTogglingHqApproved ? (
+                <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+              ) : campaign.hq_approved ? (
+                <ShieldCheck className="w-4 h-4 mr-1" />
+              ) : (
+                <ShieldX className="w-4 h-4 mr-1" />
+              )}
+              {campaign.hq_approved ? 'Internt godkänd ✓' : 'Markera internt godkänd'}
             </Button>
           )}
         </div>
@@ -362,6 +440,18 @@ export default function CampaignDetailPage() {
             <Sparkles className="w-4 h-4" />
             AI Copy
           </button>
+          <button
+            className={cn(
+              'px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors flex items-center gap-2',
+              activeTab === 'preview'
+                ? 'border-primary text-primary'
+                : 'border-transparent text-muted-foreground hover:text-foreground'
+            )}
+            onClick={() => setActiveTab('preview')}
+          >
+            <Monitor className="w-4 h-4" />
+            Preview
+          </button>
         </div>
       </div>
 
@@ -388,6 +478,10 @@ export default function CampaignDetailPage() {
 
       {activeTab === 'copy' && (
         <CopyGeneratorSheet campaign={campaign} />
+      )}
+
+      {activeTab === 'preview' && (
+        <DevicePreviewTab campaign={campaign} assets={assets} />
       )}
 
       {/* Edit Modal */}
@@ -476,6 +570,26 @@ function EditCampaignModal({ editForm, setEditForm, onSave, onClose, isSaving }:
                   {STATUS_CONFIG[status].label}
                 </option>
               ))}
+            </select>
+          </div>
+
+          {/* Content Pillar */}
+          <div>
+            <label className="block text-sm font-medium mb-1">Innehållspelare</label>
+            <select
+              className="w-full px-3 py-2 rounded-md border border-input bg-background text-sm"
+              value={editForm.content_pillar || ''}
+              onChange={(e) => setEditForm({ 
+                ...editForm, 
+                content_pillar: e.target.value ? Number(e.target.value) : null 
+              })}
+            >
+              <option value="">Ingen pelare vald</option>
+              <option value="1">Pelare 1</option>
+              <option value="2">Pelare 2</option>
+              <option value="3">Pelare 3</option>
+              <option value="4">Pelare 4</option>
+              <option value="5">Pelare 5</option>
             </select>
           </div>
 
@@ -647,6 +761,121 @@ function AssetCard({ asset }: AssetCardProps) {
             >
               <Download className="w-4 h-4" />
             </a>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ============ Device Preview Tab ============
+
+interface DevicePreviewTabProps {
+  campaign: Campaign
+  assets: Asset[]
+}
+
+function DevicePreviewTab({ campaign, assets }: DevicePreviewTabProps) {
+  const [selectedFormat, setSelectedFormat] = useState<TemplateFormat>('facebook_feed')
+
+  // Find an asset image to show in the preview
+  const previewImage = assets.find(a => 
+    (a.type === 'image' || a.type === 'composite') && a.public_url
+  )?.public_url
+
+  return (
+    <div className="space-y-6">
+      {/* Format selector tabs */}
+      <div className="flex gap-2 flex-wrap">
+        {PREVIEW_FORMATS.map((format) => (
+          <button
+            key={format}
+            onClick={() => setSelectedFormat(format)}
+            className={cn(
+              'px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2',
+              selectedFormat === format
+                ? 'bg-primary text-primary-foreground'
+                : 'bg-muted hover:bg-muted/80 text-muted-foreground'
+            )}
+          >
+            <span>{getFormatIcon(format)}</span>
+            {getFormatDisplayName(format)}
+          </button>
+        ))}
+      </div>
+
+      {/* Preview area */}
+      <div className="flex flex-col lg:flex-row gap-8 items-start">
+        {/* Device mockup */}
+        <div className="flex-shrink-0">
+          <DeviceMockup format={selectedFormat} imageUrl={previewImage}>
+            {/* Overlay content if no image */}
+            {!previewImage && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center p-4 text-center">
+                <h3 className="text-white font-bold text-sm mb-1 drop-shadow-lg">
+                  {campaign.name}
+                </h3>
+                {campaign.description && (
+                  <p className="text-white/80 text-xs line-clamp-3 drop-shadow">
+                    {campaign.description}
+                  </p>
+                )}
+              </div>
+            )}
+          </DeviceMockup>
+        </div>
+
+        {/* Campaign info panel */}
+        <div className="flex-1 bg-card rounded-lg border border-border p-6 space-y-4">
+          <div>
+            <h3 className="font-semibold text-lg mb-1">Kampanjförhandsvisning</h3>
+            <p className="text-sm text-muted-foreground">
+              Så här kan kampanjen se ut i {getFormatDisplayName(selectedFormat)}
+            </p>
+          </div>
+
+          <div className="space-y-3">
+            <div>
+              <span className="text-xs text-muted-foreground">Kampanjnamn</span>
+              <p className="font-medium">{campaign.name}</p>
+            </div>
+            
+            {campaign.description && (
+              <div>
+                <span className="text-xs text-muted-foreground">Beskrivning</span>
+                <p className="text-sm">{campaign.description}</p>
+              </div>
+            )}
+
+            {campaign.key_messages && campaign.key_messages.length > 0 && (
+              <div>
+                <span className="text-xs text-muted-foreground">Nyckelbudskap</span>
+                <ul className="text-sm mt-1 space-y-1">
+                  {campaign.key_messages.slice(0, 3).map((msg, i) => (
+                    <li key={i} className="flex gap-2">
+                      <span className="text-primary">•</span>
+                      <span>{msg}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {campaign.content_pillar && CONTENT_PILLAR_LABELS[campaign.content_pillar] && (
+              <div>
+                <span className="text-xs text-muted-foreground">Innehållspelare</span>
+                <Badge className={cn('mt-1', CONTENT_PILLAR_LABELS[campaign.content_pillar].color)}>
+                  {CONTENT_PILLAR_LABELS[campaign.content_pillar].label}
+                </Badge>
+              </div>
+            )}
+          </div>
+
+          {assets.length === 0 && (
+            <div className="bg-muted/50 rounded-lg p-4 text-center text-sm text-muted-foreground">
+              <p>Inga bilder kopplade till kampanjen ännu.</p>
+              <p className="text-xs mt-1">Lägg till bilder i Material-fliken för att se dem i förhandsvisningen.</p>
+            </div>
           )}
         </div>
       </div>
