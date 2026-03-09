@@ -27,8 +27,12 @@ import {
   Download,
   MapPin,
   ChevronDown,
+  ChevronRight,
   FileDown,
-  FlaskConical
+  FlaskConical,
+  PenTool,
+  Send,
+  BarChart3
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -65,16 +69,63 @@ import ABTestPage from './ABTestPage'
 // 404 page
 import NotFoundPage from '../NotFoundPage'
 
-const navItems = [
-  { to: '/hq', icon: LayoutDashboard, label: 'Dashboard', end: true },
-  { to: '/hq/campaigns', icon: Megaphone, label: 'Kampanjer' },
-  { to: '/hq/ab-test', icon: FlaskConical, label: 'A/B-test' },
-  { to: '/hq/franchisees', icon: Users, label: 'Franchisetagare' },
-  { to: '/hq/compliance', icon: ShieldCheck, label: 'Kampanjräckvidd' },
-  { to: '/hq/calendar', icon: Calendar, label: 'Kalender' },
-  { to: '/hq/annual-plan', icon: CalendarRange, label: 'Årshjul' },
-  { to: '/hq/brand', icon: Palette, label: 'Varumärke' },
-  { to: '/hq/integrations', icon: Plug, label: 'Integrationer' },
+// Navigation sections with intention-based grouping
+type NavItem = { to: string; icon: React.ComponentType<{ className?: string }>; label: string; end?: boolean }
+
+interface NavSectionConfig {
+  id: string
+  icon: React.ComponentType<{ className?: string }>
+  label: string
+  defaultOpen: boolean
+  items: NavItem[]
+}
+
+const navSections: NavSectionConfig[] = [
+  {
+    id: 'planera',
+    icon: Calendar,
+    label: 'PLANERA',
+    defaultOpen: true,
+    items: [
+      { to: '/hq/calendar', icon: Calendar, label: 'Kalender' },
+      { to: '/hq/campaigns', icon: Megaphone, label: 'Kampanjer' },
+      { to: '/hq/annual-plan', icon: CalendarRange, label: 'Årshjul' },
+    ]
+  },
+  {
+    id: 'skapa',
+    icon: PenTool,
+    label: 'SKAPA',
+    defaultOpen: true,
+    items: [
+      { to: '/hq/ab-test', icon: FlaskConical, label: 'AI Copy' },
+      { to: '/hq/brand', icon: Palette, label: 'Material' },
+    ]
+  },
+  {
+    id: 'distribuera',
+    icon: Send,
+    label: 'DISTRIBUERA',
+    defaultOpen: false,
+    items: [
+      { to: '/hq/compliance', icon: ShieldCheck, label: 'Kampanjräckvidd' },
+      { to: '/hq/integrations', icon: Plug, label: 'Integrationer' },
+    ]
+  },
+  {
+    id: 'analysera',
+    icon: BarChart3,
+    label: 'ANALYSERA',
+    defaultOpen: false,
+    items: [
+      { to: '/hq', icon: LayoutDashboard, label: 'Dashboard', end: true },
+      { to: '/hq/franchisees', icon: Users, label: 'Franchisetagare' },
+    ]
+  },
+]
+
+// Standalone items outside sections
+const standaloneNavItems: NavItem[] = [
   { to: '/hq/settings', icon: Settings, label: 'Inställningar' },
 ]
 
