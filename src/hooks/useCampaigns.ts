@@ -148,7 +148,7 @@ export function useCampaigns(): UseCampaignsReturn {
         .update({ ...data, updated_at: new Date().toISOString() })
         .eq('id', campaignId)
         .eq('organization_id', appUser.organization_id)
-        .select('id, name, description, status, channels, start_date, end_date, created_at, updated_at, organization_id, brand_id, target_persona, key_messages, created_by, content_pillar')
+        .select('id, name, description, status, channels, start_date, end_date, created_at, updated_at, organization_id, brand_id, target_persona, key_messages, created_by, hq_approved, content_pillar, rejection_comment, local_customization')
         .single()
 
       if (error) throw new Error(`Update error: ${error.message}`)
@@ -191,7 +191,7 @@ export function useCampaigns(): UseCampaignsReturn {
           content_pillar: original.content_pillar,
           created_by: appUser.id,
         })
-        .select('id, name, description, status, channels, start_date, end_date, created_at, updated_at, organization_id, brand_id, target_persona, key_messages, created_by, content_pillar')
+        .select('id, name, description, status, channels, start_date, end_date, created_at, updated_at, organization_id, brand_id, target_persona, key_messages, created_by, hq_approved, content_pillar, rejection_comment, local_customization')
         .single()
 
       if (error) throw new Error(`Duplicate error: ${error.message}`)

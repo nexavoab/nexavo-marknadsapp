@@ -60,7 +60,7 @@ export function useFranchiseeData() {
 
     const { data, error } = await supabase
       .from('campaigns')
-      .select('id, name, description, status, channels, start_date, end_date, created_at, local_customization, hq_approved')
+      .select('id, name, description, status, channels, start_date, end_date, created_at, local_customization, hq_approved, target_persona, key_messages, rejection_comment, content_pillar')
       .eq('id', campaignId)
       .eq('organization_id', appUser.organization_id)
       .single()
