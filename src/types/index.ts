@@ -288,11 +288,14 @@ export type ScheduledPostStatus = 'draft' | 'scheduled' | 'published'
 
 export interface ScheduledPost {
   id: string
-  campaign_id: string
-  campaign_name: string
+  campaign_id?: string
+  campaign_name?: string
   channel: CampaignChannel
   scheduled_date: string // ISO date (YYYY-MM-DD)
   status: ScheduledPostStatus
   headline?: string
+  body?: string
   org_id: string
+  created_at?: string
+  updated_at?: string
 }

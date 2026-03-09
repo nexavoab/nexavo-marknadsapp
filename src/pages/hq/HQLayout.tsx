@@ -32,7 +32,8 @@ import {
   FlaskConical,
   PenTool,
   Send,
-  BarChart3
+  BarChart3,
+  Eye
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -65,6 +66,9 @@ import AIPipelineTestPage from './AIPipelineTestPage'
 
 // A/B Test page
 import ABTestPage from './ABTestPage'
+
+// Competitor Intelligence
+import CompetitorIntelligencePage from './CompetitorIntelligencePage'
 
 // 404 page
 import NotFoundPage from '../NotFoundPage'
@@ -120,6 +124,7 @@ const navSections: NavSectionConfig[] = [
     items: [
       { to: '/hq', icon: LayoutDashboard, label: 'Dashboard', end: true },
       { to: '/hq/franchisees', icon: Users, label: 'Franchisetagare' },
+      { to: '/hq/competitor-intelligence', icon: Eye, label: 'Konkurrentanalys' },
     ]
   },
 ]
@@ -697,6 +702,7 @@ function HQLayoutInner() {
             <Route path="franchisees" element={<FranchiseesPage />} />
             <Route path="compliance" element={<CompliancePage />} />
             <Route path="integrations" element={<IntegrationsPage />} />
+            <Route path="competitor-intelligence" element={<CompetitorIntelligencePage />} />
             <Route path="settings" element={<SettingsPage />} />
             {/* Internal test pages - no nav links */}
             <Route path="ai-test" element={<AIPipelineTestPage />} />
