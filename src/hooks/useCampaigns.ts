@@ -15,7 +15,7 @@ export interface CampaignUpdateData {
   channels?: CampaignChannel[]
   start_date?: string | null
   end_date?: string | null
-  target_persona?: Record<string, unknown> | null
+  target_persona?: Record<string, unknown> | string | null
   key_messages?: string[]
 }
 

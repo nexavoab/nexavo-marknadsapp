@@ -77,7 +77,7 @@ export interface Campaign {
   channels: CampaignChannel[]
   start_date?: string
   end_date?: string
-  target_persona?: Record<string, unknown>
+  target_persona?: Record<string, unknown> | string
   key_messages: string[]
   created_by?: string
   created_at: string

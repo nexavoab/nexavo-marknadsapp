@@ -278,19 +278,27 @@ export default function CampaignDetailPage() {
       {(campaign.target_persona || (campaign.key_messages && campaign.key_messages.length > 0)) && (
         <div className="grid gap-4 md:grid-cols-2 mb-8">
           {/* Target Persona */}
-          {campaign.target_persona && Object.keys(campaign.target_persona).length > 0 && (
+          {campaign.target_persona && (
+            typeof campaign.target_persona === 'string'
+              ? campaign.target_persona.trim().length > 0
+              : Object.keys(campaign.target_persona).length > 0
+          ) && (
             <div className="bg-card rounded-lg border border-border p-4">
               <div className="flex items-center gap-2 mb-3">
                 <User className="w-4 h-4 text-muted-foreground" />
                 <h3 className="font-medium">Målgrupp / Persona</h3>
               </div>
               <div className="space-y-2 text-sm">
-                {Object.entries(campaign.target_persona).map(([key, value]) => (
-                  <div key={key} className="flex gap-2">
-                    <span className="text-muted-foreground capitalize">{key.replace(/_/g, ' ')}:</span>
-                    <span>{typeof value === 'object' ? JSON.stringify(value) : String(value)}</span>
-                  </div>
-                ))}
+                {typeof campaign.target_persona === 'string' ? (
+                  <p>{campaign.target_persona}</p>
+                ) : (
+                  Object.entries(campaign.target_persona).map(([key, value]) => (
+                    <div key={key} className="flex gap-2">
+                      <span className="text-muted-foreground capitalize">{key.replace(/_/g, ' ')}:</span>
+                      <span>{typeof value === 'object' ? JSON.stringify(value) : String(value)}</span>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
           )}
