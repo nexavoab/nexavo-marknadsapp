@@ -31,15 +31,34 @@ function buildPrompt(taskType: string, payload: Record<string, unknown>): string
     case "generate-copy":
       return `Generera kampanjmaterial.
 Brand: ${brandContext?.name || "Unknown"}
-Tone: ${Array.isArray(brandContext?.tone) ? brandContext.tone.join(", ") : "professionell"}
+Tone: ${JSON.stringify(brandContext?.tone_traits || { formality: 0.5, modernity: 0.5, emotion: 0.5, volume: 0.5 })}
 Colors: ${JSON.stringify(brandContext?.colors || {})}
+Positioning: ${brandContext?.positioning || ""}
 Kampanj: ${campaign?.name || ""}
+Beskrivning: ${campaign?.description || ""}
 Mål: ${campaign?.goal || ""}
 Erbjudande: ${campaign?.offer || ""}
 Plattformar: ${Array.isArray(payload.platforms) ? payload.platforms.join(", ") : "instagram"}
 Antal varianter: ${payload.variants || 3}
 
-Leverera JSON med format: { "posts": [{ "platform": "...", "copy": "...", "hashtags": [...], "image_prompt": "..." }] }`;
+Leverera JSON med format: { "posts": [{ "platform": "...", "headline": "...", "copy": "...", "cta": "...", "hashtags": [...], "image_prompt": "..." }] }
+
+TASK_ID: ${payload.task_id || ""}
+
+VIKTIGT: När du är klar med copy-genereringen, skriv tillbaka resultatet till Supabase.
+Använd EXAKT denna curl-syntax (kolumn heter output_payload, INTE result):
+
+TASK_ID="${payload.task_id || ""}"
+TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZvdHJ3Y3dqdmNocWpmdm56dmVuIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTczOTM1MTE1MiwiZXhwIjoyMDU0OTI3MTUyfQ.LiiKk83jPP2DNJM49sAt7E9LGqAJ4Mqz_FJSQQdH2F8"
+curl -X PATCH "https://fotrwcwjvchqjfvnzven.supabase.co/rest/v1/ai_tasks?id=eq.$TASK_ID" \\
+  -H "apikey: $SUPABASE_KEY" \\
+  -H "Authorization: Bearer $SUPABASE_KEY" \\
+  -H "Content-Type: application/json" \\
+  -d '{"status": "completed", "output_payload": <DIN_GENERERADE_JSON>, "completed_at": "'"$TIMESTAMP"'"}'
+
+Där <DIN_GENERERADE_JSON> är din genererade JSON med posts-arrayen, t.ex.:
+{"posts": [{"platform": "instagram", "headline": "...", "copy": "...", "cta": "..."}]}`;
 
     case "publish-meta":
       return `Publicera följande innehåll till Meta (Facebook/Instagram):

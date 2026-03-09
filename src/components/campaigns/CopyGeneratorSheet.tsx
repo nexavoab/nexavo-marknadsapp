@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button'
 import { useBrand } from '@/hooks/useBrand'
 import { supabase } from '@/lib/supabase'
 import type { Campaign } from '@/types'
-import { Loader2, Copy, Check, AlertCircle, Sparkles } from 'lucide-react'
+import { Loader2, Copy, Check, AlertCircle, Sparkles, Zap } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 
@@ -90,6 +90,11 @@ export function CopyGeneratorSheet({ campaign }: CopyGeneratorSheetProps) {
   const [isGenerating, setIsGenerating] = useState(false)
   const [results, setResults] = useState<CopyResult[] | null>(null)
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null)
+  
+  // OpenClaw AI state
+  const [isOpenClawLoading, setIsOpenClawLoading] = useState(false)
+  const [openClawProgress, setOpenClawProgress] = useState(0)
+  const [, setOpenClawTaskId] = useState<string | null>(null)
 
   const handleFormatToggle = (format: CopyFormat) => {
     setSelectedFormats((prev) =>
@@ -197,6 +202,123 @@ export function CopyGeneratorSheet({ campaign }: CopyGeneratorSheetProps) {
     }
   }
 
+  const handleOpenClawGenerate = async () => {
+    if (!brand) {
+      toast.error('Inget varumärke konfigurerat')
+      return
+    }
+    
+    if (selectedFormats.length === 0) {
+      toast.error('Välj minst ett format')
+      return
+    }
+    
+    setIsOpenClawLoading(true)
+    setOpenClawProgress(0)
+    setResults(null)
+    
+    try {
+      // 1. Skapa ai_tasks record
+      const { data: task, error: taskError } = await supabase
+        .from('ai_tasks')
+        .insert({
+          org_id: campaign.organization_id,
+          task_type: 'generate-copy',
+          status: 'pending',
+          input_payload: {
+            campaign_id: campaign.id,
+            campaign_name: campaign.name,
+            formats: selectedFormats,
+            brand_id: brand.id,
+          }
+        })
+        .select('id')
+        .single()
+      
+      if (taskError || !task) {
+        throw new Error('Kunde inte skapa AI-uppgift')
+      }
+      setOpenClawTaskId(task.id)
+      
+      // 2. Anropa invoke-openclaw
+      const { error: invokeError } = await supabase.functions.invoke('invoke-openclaw', {
+        body: {
+          task_id: task.id,
+          org_id: campaign.organization_id,
+          task_type: 'generate-copy',
+          payload: {
+            task_id: task.id,
+            brand_context: {
+              brand_id: brand.id,
+              org_id: campaign.organization_id,
+              name: brand.name || '',
+              tone_traits: brand.tone_traits || {},
+              colors: brand.colors || {},
+              positioning: brand.positioning || '',
+            },
+            campaign: {
+              name: campaign.name,
+              description: campaign.description || '',
+              goal: '',
+              offer: '',
+            },
+            platforms: selectedFormats.map(f => FORMAT_TO_CHANNEL[f]),
+            variants: 1,
+          }
+        }
+      })
+      
+      if (invokeError) {
+        throw new Error(`OpenClaw-fel: ${invokeError.message}`)
+      }
+      
+      // 3. Poll ai_tasks var 3:e sekund (max 120s)
+      let elapsed = 0
+      const interval = setInterval(async () => {
+        elapsed += 3
+        setOpenClawProgress(elapsed)
+        
+        if (elapsed >= 120) {
+          clearInterval(interval)
+          setIsOpenClawLoading(false)
+          toast.error('OpenClaw timeout — försök igen')
+          return
+        }
+        
+        const { data: taskStatus } = await supabase
+          .from('ai_tasks')
+          .select('status, output_payload')
+          .eq('id', task.id)
+          .single()
+        
+        if (taskStatus?.status === 'completed' && taskStatus.output_payload) {
+          clearInterval(interval)
+          setIsOpenClawLoading(false)
+          
+          // Mappa output_payload.posts till CopyResult[]
+          const outputPayload = taskStatus.output_payload as { posts?: Array<Record<string, unknown>> }
+          const posts = outputPayload.posts || []
+          const mapped: CopyResult[] = posts.map((p: Record<string, unknown>) => ({
+            type: String(p.platform || 'instagram'),
+            headline: String(p.headline || ''),
+            copy: String(p.copy || ''),
+            cta: String(p.cta || ''),
+            character_count: String(p.headline || '').length + String(p.copy || '').length,
+          }))
+          setResults(mapped)
+          toast.success(`OpenClaw genererade ${mapped.length} format!`)
+        } else if (taskStatus?.status === 'failed') {
+          clearInterval(interval)
+          setIsOpenClawLoading(false)
+          toast.error('AI-generering misslyckades')
+        }
+      }, 3000)
+    } catch (err) {
+      setIsOpenClawLoading(false)
+      toast.error(err instanceof Error ? err.message : 'Fel vid OpenClaw-anrop')
+    }
+  }
+
   const handleCopy = async (index: number, text: string) => {
     try {
       await navigator.clipboard.writeText(text)
@@ -265,11 +387,11 @@ export function CopyGeneratorSheet({ campaign }: CopyGeneratorSheetProps) {
         </div>
       </div>
 
-      {/* Generate Button */}
-      <div className="flex justify-center">
+      {/* Generate Buttons */}
+      <div className="flex flex-col items-center gap-3">
         <Button
           onClick={handleGenerate}
-          disabled={isGenerating || selectedFormats.length === 0}
+          disabled={isGenerating || isOpenClawLoading || selectedFormats.length === 0}
           size="lg"
           className="min-w-[200px]"
         >
@@ -282,6 +404,27 @@ export function CopyGeneratorSheet({ campaign }: CopyGeneratorSheetProps) {
             <>
               <Sparkles className="w-4 h-4 mr-2" />
               Generera copy
+            </>
+          )}
+        </Button>
+        
+        {/* OpenClaw AI Button */}
+        <Button
+          onClick={handleOpenClawGenerate}
+          disabled={isOpenClawLoading || isGenerating || selectedFormats.length === 0}
+          size="lg"
+          variant="outline"
+          className="min-w-[220px] border-purple-300 text-purple-700 hover:bg-purple-50"
+        >
+          {isOpenClawLoading ? (
+            <>
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              OpenClaw genererar... ({openClawProgress}s)
+            </>
+          ) : (
+            <>
+              <Zap className="w-4 h-4 mr-2" />
+              Djup AI (OpenClaw)
             </>
           )}
         </Button>
