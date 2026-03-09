@@ -11,6 +11,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import type { ScheduledPost, CampaignChannel } from '@/types'
 
 const WEEKDAYS = ['Mån', 'Tis', 'Ons', 'Tor', 'Fre', 'Lör', 'Sön']
 const MONTHS = [
@@ -68,6 +69,73 @@ const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
 }
 
 const CHANNELS = ['facebook', 'instagram', 'google', 'email', 'linkedin'] as const
+
+// WAS-412: Channel colors and abbreviations for scheduled posts
+const CHANNEL_CONFIG: Record<CampaignChannel, { abbr: string; bgColor: string; textColor: string }> = {
+  facebook: { abbr: 'FB', bgColor: 'bg-blue-500', textColor: 'text-white' },
+  instagram: { abbr: 'IG', bgColor: 'bg-pink-500', textColor: 'text-white' },
+  linkedin: { abbr: 'LI', bgColor: 'bg-blue-800', textColor: 'text-white' },
+  email: { abbr: '✉', bgColor: 'bg-gray-500', textColor: 'text-white' },
+  tiktok: { abbr: 'TT', bgColor: 'bg-black', textColor: 'text-white' },
+  google: { abbr: 'G', bgColor: 'bg-red-500', textColor: 'text-white' },
+  print: { abbr: 'PR', bgColor: 'bg-amber-600', textColor: 'text-white' },
+  display: { abbr: 'DI', bgColor: 'bg-purple-500', textColor: 'text-white' },
+  print_flyer: { abbr: 'FL', bgColor: 'bg-amber-700', textColor: 'text-white' },
+}
+
+// WAS-412: Mock scheduled posts (hardcoded until DB is ready)
+const mockScheduledPosts: ScheduledPost[] = [
+  {
+    id: 'post-1',
+    campaign_id: 'camp-1',
+    campaign_name: 'Sommarkampanj',
+    channel: 'instagram',
+    scheduled_date: '2026-03-15',
+    status: 'scheduled',
+    headline: 'Semestern börjar här 🌞',
+    org_id: 'org-1',
+  },
+  {
+    id: 'post-2',
+    campaign_id: 'camp-1',
+    campaign_name: 'Sommarkampanj',
+    channel: 'facebook',
+    scheduled_date: '2026-03-15',
+    status: 'scheduled',
+    headline: 'Boka din drömresa idag',
+    org_id: 'org-1',
+  },
+  {
+    id: 'post-3',
+    campaign_id: 'camp-2',
+    campaign_name: 'Nyhetsbrev Q1',
+    channel: 'email',
+    scheduled_date: '2026-03-20',
+    status: 'draft',
+    headline: 'Q1 nyhetsbrev — viktig info',
+    org_id: 'org-1',
+  },
+  {
+    id: 'post-4',
+    campaign_id: 'camp-1',
+    campaign_name: 'Sommarkampanj',
+    channel: 'linkedin',
+    scheduled_date: '2026-03-18',
+    status: 'scheduled',
+    headline: 'Karriärtips för sommaren',
+    org_id: 'org-1',
+  },
+  {
+    id: 'post-5',
+    campaign_id: 'camp-3',
+    campaign_name: 'Vårkampanj',
+    channel: 'instagram',
+    scheduled_date: '2026-03-10',
+    status: 'published',
+    headline: 'Våren är här! 🌸',
+    org_id: 'org-1',
+  },
+]
 
 export default function CalendarPage() {
   const navigate = useNavigate()
@@ -204,6 +272,19 @@ export default function CalendarPage() {
     }
     setShowNewCampaignDialog(false)
   }
+
+  // WAS-412: Group scheduled posts by date for calendar display
+  const postsByDate = useMemo(() => {
+    const grouped: Record<string, ScheduledPost[]> = {}
+    mockScheduledPosts.forEach((post) => {
+      const dateKey = post.scheduled_date
+      if (!grouped[dateKey]) {
+        grouped[dateKey] = []
+      }
+      grouped[dateKey].push(post)
+    })
+    return grouped
+  }, [])
 
   // Agenda list for mobile - show campaigns for current month
   const agendaItems = useMemo(() => {
@@ -414,28 +495,89 @@ export default function CalendarPage() {
                 {days.map((day, idx) => {
                   const dateKey = formatDateKey(day.date)
                   const isToday = dateKey === today
+                  const postsForDay = postsByDate[dateKey] || []
+                  const postCount = postsForDay.length
 
                   return (
                     <div
                       key={idx}
                       onClick={() => handleDateClick(day.date, day.isCurrentMonth)}
                       className={`
-                        group min-h-[60px] md:min-h-[80px] p-1 relative
+                        group min-h-[60px] md:min-h-[100px] p-1 relative
                         border-r border-b border-border
                         ${day.isCurrentMonth ? 'bg-card cursor-pointer hover:bg-muted/50' : 'bg-muted/50'}
                         ${isToday ? 'ring-2 ring-inset ring-primary' : ''}
                         transition-colors
                       `}
                     >
-                      <div
-                        className={`text-sm font-medium ${
-                          day.isCurrentMonth ? 'text-foreground' : 'text-muted-foreground'
-                        }`}
-                      >
-                        {day.date.getDate()}
+                      <div className="flex items-center justify-between">
+                        <span
+                          className={`text-sm font-medium ${
+                            day.isCurrentMonth ? 'text-foreground' : 'text-muted-foreground'
+                          }`}
+                        >
+                          {day.date.getDate()}
+                        </span>
+                        {/* WAS-412: Post count badge */}
+                        {postCount > 0 && day.isCurrentMonth && (
+                          <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded-full font-medium">
+                            {postCount} inlägg
+                          </span>
+                        )}
                       </div>
+                      
+                      {/* WAS-412: Scheduled post chips */}
+                      {day.isCurrentMonth && postsForDay.length > 0 && (
+                        <div className="mt-1 space-y-0.5 overflow-hidden" onClick={(e) => e.stopPropagation()}>
+                          {postsForDay.slice(0, 3).map((post) => {
+                            const channelConfig = CHANNEL_CONFIG[post.channel] || CHANNEL_CONFIG.facebook
+                            const statusIcon = post.status === 'draft' ? '📝' : post.status === 'published' ? '✅' : ''
+                            
+                            return (
+                              <Popover key={post.id}>
+                                <PopoverTrigger asChild>
+                                  <button
+                                    className={`
+                                      w-full flex items-center gap-1 px-1 py-0.5 rounded text-[10px]
+                                      ${channelConfig.bgColor} ${channelConfig.textColor}
+                                      hover:opacity-80 transition-opacity cursor-pointer
+                                      truncate text-left
+                                    `}
+                                  >
+                                    <span className="font-bold flex-shrink-0">[{channelConfig.abbr}]</span>
+                                    <span className="truncate">{post.headline || post.campaign_name}</span>
+                                    {statusIcon && <span className="flex-shrink-0">{statusIcon}</span>}
+                                  </button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-64 p-3" side="right" align="start">
+                                  <div className="space-y-2">
+                                    <div className="flex items-center gap-2">
+                                      <span className={`px-2 py-0.5 rounded text-xs font-bold ${channelConfig.bgColor} ${channelConfig.textColor}`}>
+                                        {channelConfig.abbr}
+                                      </span>
+                                      <span className="text-xs text-muted-foreground capitalize">{post.channel}</span>
+                                    </div>
+                                    <h4 className="font-semibold text-sm">{post.headline || 'Inget headline'}</h4>
+                                    <div className="text-xs text-muted-foreground space-y-1">
+                                      <p><strong>Kampanj:</strong> {post.campaign_name}</p>
+                                      <p><strong>Datum:</strong> {new Date(post.scheduled_date).toLocaleDateString('sv-SE', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
+                                      <p><strong>Status:</strong> {post.status === 'draft' ? '📝 Utkast' : post.status === 'scheduled' ? '📅 Schemalagd' : '✅ Publicerad'}</p>
+                                    </div>
+                                  </div>
+                                </PopoverContent>
+                              </Popover>
+                            )
+                          })}
+                          {postsForDay.length > 3 && (
+                            <span className="text-[10px] text-muted-foreground pl-1">
+                              +{postsForDay.length - 3} till
+                            </span>
+                          )}
+                        </div>
+                      )}
+                      
                       {/* Hover "+" indicator for empty cells */}
-                      {day.isCurrentMonth && (
+                      {day.isCurrentMonth && postsForDay.length === 0 && (
                         <span className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 text-primary text-2xl font-light pointer-events-none">
                           +
                         </span>

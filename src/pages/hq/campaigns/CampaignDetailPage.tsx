@@ -8,6 +8,8 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useCampaigns, type CampaignUpdateData } from '@/hooks/useCampaigns'
 import { useAssets } from '@/hooks/useAssets'
 import { useAuth } from '@/contexts/AuthContext'
+import { useBrandGuardian, SCORE_THRESHOLDS, type BrandGuardianResult } from '@/hooks/useBrandGuardian'
+import { useBrand } from '@/hooks/useBrand'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
@@ -86,6 +88,8 @@ export default function CampaignDetailPage() {
   const { fetchCampaign, updateCampaign, updateCampaignStatus, updateHqApproved, duplicateCampaign, archiveCampaign } = useCampaigns()
   const { fetchAssets } = useAssets()
   const { appUser } = useAuth()
+  const { brand } = useBrand()
+  const { checkAndApprove, isChecking, getScoreBadgeClasses } = useBrandGuardian()
 
   const [campaign, setCampaign] = useState<Campaign | null>(null)
   const [assets, setAssets] = useState<Asset[]>([])
@@ -98,11 +102,13 @@ export default function CampaignDetailPage() {
   const [editForm, setEditForm] = useState<CampaignUpdateData>({})
   const [isSaving, setIsSaving] = useState(false)
   
-  // WAS-411: HQ signoff state (reserved for HQ approval button)
+  // WAS-411: HQ signoff state
   const [isTogglingHqApproved, setIsTogglingHqApproved] = useState(false)
   const isHqAdmin = appUser?.role === 'hq_admin'
-  void isTogglingHqApproved // suppress warning - used in handleToggleHqApproved
-  void isHqAdmin // suppress warning - will be used for conditional rendering
+  
+  // Brand Guardian state
+  const [guardianResult, setGuardianResult] = useState<BrandGuardianResult | null>(null)
+  const [showManualApproveDialog, setShowManualApproveDialog] = useState(false)
 
   useEffect(() => {
     if (id) loadCampaign(id)
@@ -204,26 +210,68 @@ export default function CampaignDetailPage() {
     }
   }
 
-  // WAS-411: Toggle HQ internal signoff (will be used when HQ approval button is added)
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const handleToggleHqApproved = async () => {
+  // WAS-411: Toggle HQ internal signoff with Brand Guardian check
+  const handleToggleHqApproved = async (forceApprove = false) => {
     if (!campaign) return
 
+    // If removing approval, no check needed
+    if (campaign.hq_approved) {
+      setIsTogglingHqApproved(true)
+      try {
+        await updateHqApproved(campaign.id, false)
+        setCampaign({ ...campaign, hq_approved: false })
+        setGuardianResult(null)
+        toast.success('Intern godkännande borttagen - kampanjen är nu dold för franchise')
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : 'Kunde inte uppdatera intern status')
+      } finally {
+        setIsTogglingHqApproved(false)
+      }
+      return
+    }
+
+    // Run Brand Guardian check before approving
     setIsTogglingHqApproved(true)
     try {
-      const newValue = !campaign.hq_approved
-      await updateHqApproved(campaign.id, newValue)
-      setCampaign({ ...campaign, hq_approved: newValue })
-      toast.success(
-        newValue 
-          ? 'Kampanjen är nu internt godkänd och synlig för franchise' 
-          : 'Intern godkännande borttagen - kampanjen är nu dold för franchise'
-      )
+      const result = await checkAndApprove(campaign, brand)
+      setGuardianResult(result)
+
+      // Score ≥85: Auto-approve
+      if (result.autoApproved) {
+        await updateHqApproved(campaign.id, true)
+        setCampaign({ ...campaign, hq_approved: true })
+        toast.success(`✅ Brand Guardian: Godkänd automatiskt (score: ${result.score})`)
+        return
+      }
+
+      // Score 70-84: Show manual approval dialog (unless force approve)
+      if (!result.blocked) {
+        if (forceApprove) {
+          await updateHqApproved(campaign.id, true)
+          setCampaign({ ...campaign, hq_approved: true })
+          toast.success(`✅ Kampanjen godkänd manuellt (Brand Guardian score: ${result.score})`)
+        } else {
+          setShowManualApproveDialog(true)
+        }
+        return
+      }
+
+      // Score <70: Block with error
+      const issuesSummary = result.issues.slice(0, 3).join(' ')
+      toast.error(`❌ Brand Guardian: Ej godkänd (score: ${result.score}). Åtgärda: ${issuesSummary}`)
+      
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Kunde inte uppdatera intern status')
+      console.error('[BrandGuardian] Error:', err)
+      toast.error(err instanceof Error ? err.message : 'Kunde inte köra Brand Guardian-check')
     } finally {
       setIsTogglingHqApproved(false)
     }
+  }
+
+  // Handle manual approval from dialog
+  const handleManualApprove = async () => {
+    setShowManualApproveDialog(false)
+    await handleToggleHqApproved(true)
   }
 
   if (loading) {
@@ -284,6 +332,12 @@ export default function CampaignDetailPage() {
                 Ej synlig för franchise
               </Badge>
             )}
+            {/* Brand Guardian Score Badge */}
+            {guardianResult && (
+              <Badge className={cn('text-sm border', getScoreBadgeClasses(guardianResult.score))}>
+                BG: {guardianResult.score}
+              </Badge>
+            )}
           </div>
           {campaign.description && (
             <p className="text-muted-foreground">{campaign.description}</p>
@@ -335,16 +389,19 @@ export default function CampaignDetailPage() {
               Arkivera
             </Button>
           )}
-          {/* WAS-411: HQ Internal Signoff - only visible for hq_admin */}
+          {/* WAS-411: HQ Internal Signoff with Brand Guardian - only visible for hq_admin */}
           {isHqAdmin && (
             <Button
               variant={campaign.hq_approved ? 'outline' : 'default'}
-              onClick={handleToggleHqApproved}
-              disabled={isTogglingHqApproved}
+              onClick={() => handleToggleHqApproved()}
+              disabled={isTogglingHqApproved || isChecking}
               className={campaign.hq_approved ? 'border-green-500 text-green-700 hover:bg-green-50' : ''}
             >
-              {isTogglingHqApproved ? (
-                <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+              {(isTogglingHqApproved || isChecking) ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                  {isChecking ? 'Kontrollerar...' : ''}
+                </>
               ) : campaign.hq_approved ? (
                 <ShieldCheck className="w-4 h-4 mr-1" />
               ) : (
@@ -513,6 +570,55 @@ export default function CampaignDetailPage() {
           onClose={() => setIsEditOpen(false)}
           isSaving={isSaving}
         />
+      )}
+
+      {/* Brand Guardian Manual Approval Dialog */}
+      {showManualApproveDialog && guardianResult && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-card rounded-lg border border-border w-full max-w-md p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className={cn(
+                'w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold',
+                getScoreBadgeClasses(guardianResult.score)
+              )}>
+                {guardianResult.score}
+              </div>
+              <div>
+                <h3 className="font-semibold text-lg">Brand Guardian</h3>
+                <p className="text-sm text-muted-foreground">Manuell granskning krävs</p>
+              </div>
+            </div>
+            
+            <p className="text-sm mb-4">
+              Kampanjen fick score <strong>{guardianResult.score}</strong> (kräver {SCORE_THRESHOLDS.AUTO_APPROVE}+ för auto-godkännande).
+              Du kan fortfarande godkänna manuellt.
+            </p>
+
+            {guardianResult.issues.length > 0 && (
+              <div className="bg-muted rounded-lg p-3 mb-4 max-h-40 overflow-y-auto">
+                <p className="text-xs font-medium text-muted-foreground mb-2">Problem att åtgärda:</p>
+                <ul className="space-y-1 text-sm">
+                  {guardianResult.issues.map((issue, i) => (
+                    <li key={i}>{issue}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            <div className="flex gap-2 justify-end">
+              <Button 
+                variant="outline" 
+                onClick={() => setShowManualApproveDialog(false)}
+              >
+                Avbryt
+              </Button>
+              <Button onClick={handleManualApprove}>
+                <ShieldCheck className="w-4 h-4 mr-1" />
+                Godkänn ändå
+              </Button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )
