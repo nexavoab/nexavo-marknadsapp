@@ -14,6 +14,8 @@ import {
   ArrowRight,
   Plus,
   FlaskConical,
+  Clock,
+  BadgeCheck,
 } from 'lucide-react'
 import {
   LineChart,
@@ -58,11 +60,15 @@ interface DashboardStats {
   assetCount: number | null
   activeFranchisees: number
   inactiveFranchisees: number
+  pendingApprovalCount: number | null
+  hqApprovedCount: number | null
   // Trends
   campaignsTrend: number
   downloadsTrend: number
   franchiseeTrend: number
   assetTrend: number
+  pendingTrend: number
+  hqApprovedTrend: number
 }
 
 interface RecentCampaign {
@@ -246,10 +252,14 @@ export default function DashboardPage() {
     assetCount: null,
     activeFranchisees: 0,
     inactiveFranchisees: 0,
+    pendingApprovalCount: null,
+    hqApprovedCount: null,
     campaignsTrend: 0,
     downloadsTrend: 0,
     franchiseeTrend: 0,
     assetTrend: 0,
+    pendingTrend: 0,
+    hqApprovedTrend: 0,
   })
   const [recentCampaigns, setRecentCampaigns] = useState<RecentCampaign[]>([])
   const [attentionItems, setAttentionItems] = useState<AttentionItems>({
@@ -301,6 +311,8 @@ export default function DashboardPage() {
           assetsRes,
           campaignsRes,
           pendingCampaignsRes,
+          pendingApprovalRes,
+          hqApprovedRes,
         ] = await Promise.all([
           supabase
             .from('campaigns')
@@ -336,6 +348,16 @@ export default function DashboardPage() {
             .select('id', { count: 'exact', head: true })
             .eq('organization_id', appUser.organization_id)
             .eq('status', 'draft'),
+          supabase
+            .from('campaigns')
+            .select('id', { count: 'exact', head: true })
+            .eq('organization_id', appUser.organization_id)
+            .eq('status', 'pending_approval'),
+          supabase
+            .from('campaigns')
+            .select('id', { count: 'exact', head: true })
+            .eq('organization_id', appUser.organization_id)
+            .eq('hq_approved', true),
         ])
 
         const totalDownloads =
@@ -354,10 +376,14 @@ export default function DashboardPage() {
           assetCount: assetsRes.count ?? 0,
           activeFranchisees,
           inactiveFranchisees,
+          pendingApprovalCount: pendingApprovalRes.count ?? 0,
+          hqApprovedCount: hqApprovedRes.count ?? 0,
           campaignsTrend: 12.95,
           downloadsTrend: 23.5,
           franchiseeTrend: 8.2,
           assetTrend: -5.1,
+          pendingTrend: 5.3,
+          hqApprovedTrend: 15.0,
         })
 
         setAttentionItems({
@@ -432,8 +458,8 @@ export default function DashboardPage() {
         <OnboardingChecklist steps={onboardingSteps} onDismiss={dismiss} />
       )}
 
-      {/* KPI Row - 5 cards with trends */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+      {/* KPI Row - Primary stats */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <KPICard
           label="Aktiva kampanjer"
           value={stats.activeCampaigns}
@@ -448,6 +474,14 @@ export default function DashboardPage() {
           }}
         />
         <KPICard
+          label="Väntar godkännande"
+          value={stats.pendingApprovalCount}
+          loading={loading}
+          icon={Clock}
+          trend={stats.pendingTrend}
+          onClick={() => navigate('/hq/campaigns?filter=pending')}
+        />
+        <KPICard
           label="Franchisetagare"
           value={stats.franchiseeCount}
           loading={loading}
@@ -460,6 +494,18 @@ export default function DashboardPage() {
             onAction: () => navigate('/hq/franchisees'),
           }}
         />
+        <KPICard
+          label="HQ-godkända"
+          value={stats.hqApprovedCount}
+          loading={loading}
+          icon={BadgeCheck}
+          trend={stats.hqApprovedTrend}
+          onClick={() => navigate('/hq/campaigns')}
+        />
+      </div>
+
+      {/* Secondary KPI Row */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <KPICard
           label="Nedladdningar"
           value={stats.totalDownloads}
@@ -555,7 +601,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Bottom row: Radar + Donut + Gauge */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {/* Radar chart - regional activation */}
         <WidgetCard
           title="Aktivering per region"
@@ -714,9 +760,9 @@ export default function DashboardPage() {
       </WidgetCard>
 
       {/* System status footer */}
-      <div className="bg-background rounded-xl p-4 shadow-sm">
-        <div className="flex items-center justify-between flex-wrap gap-4">
-          <div className="flex items-center gap-6 text-sm">
+      <div className="bg-background rounded-xl p-3 sm:p-4 shadow-sm">
+        <div className="flex items-center justify-between flex-wrap gap-2 sm:gap-4">
+          <div className="flex items-center gap-3 sm:gap-6 text-xs sm:text-sm flex-wrap">
             {[
               { label: 'API', ok: true },
               { label: 'Bildgenerering', ok: true },

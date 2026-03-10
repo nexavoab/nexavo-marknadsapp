@@ -25,15 +25,15 @@ import {
   Eye,
 } from 'lucide-react'
 
-const STATUS_STYLES: Record<CampaignStatus, { label: string; className: string }> = {
-  draft: { label: 'Utkast', className: 'bg-gray-100 text-gray-700' },
-  scheduled: { label: 'Schemalagd', className: 'bg-yellow-100 text-yellow-800' },
-  active: { label: 'Aktiv', className: 'bg-green-100 text-green-800' },
-  completed: { label: 'Avslutad', className: 'bg-blue-100 text-blue-800' },
-  archived: { label: 'Arkiverad', className: 'bg-gray-100 text-gray-500' },
-  approved: { label: 'Godkänd', className: 'bg-green-100 text-green-800' },
-  rejected: { label: 'Avvisad', className: 'bg-red-100 text-red-800' },
-  pending_approval: { label: 'Väntar', className: 'bg-orange-100 text-orange-800' },
+const STATUS_STYLES: Record<CampaignStatus, { label: string; className: string; borderClassName: string }> = {
+  draft: { label: 'Utkast', className: 'bg-slate-100 text-slate-700', borderClassName: 'border-l-4 border-l-slate-400' },
+  scheduled: { label: 'Schemalagd', className: 'bg-amber-100 text-amber-800', borderClassName: 'border-l-4 border-l-amber-400' },
+  active: { label: 'Aktiv', className: 'bg-green-100 text-green-800', borderClassName: 'border-l-4 border-l-green-500' },
+  completed: { label: 'Avslutad', className: 'bg-blue-100 text-blue-800', borderClassName: 'border-l-4 border-l-blue-500' },
+  archived: { label: 'Arkiverad', className: 'bg-slate-100 text-slate-500', borderClassName: 'border-l-4 border-l-slate-300' },
+  approved: { label: 'Godkänd', className: 'bg-emerald-100 text-emerald-800', borderClassName: 'border-l-4 border-l-emerald-600' },
+  rejected: { label: 'Avvisad', className: 'bg-red-100 text-red-800', borderClassName: 'border-l-4 border-l-red-500' },
+  pending_approval: { label: 'Väntar', className: 'bg-orange-100 text-orange-800', borderClassName: 'border-l-4 border-l-orange-500' },
 }
 
 const CHANNEL_ICONS: Record<CampaignChannel, string> = {
@@ -46,6 +46,14 @@ const CHANNEL_ICONS: Record<CampaignChannel, string> = {
   display: '🖥️',
   email: '📧',
   print_flyer: '🖨️',
+}
+
+const CONTENT_PILLAR_LABELS: Record<number, { label: string; color: string }> = {
+  1: { label: 'P1', color: 'bg-blue-100 text-blue-800' },
+  2: { label: 'P2', color: 'bg-purple-100 text-purple-800' },
+  3: { label: 'P3', color: 'bg-green-100 text-green-800' },
+  4: { label: 'P4', color: 'bg-orange-100 text-orange-800' },
+  5: { label: 'P5', color: 'bg-pink-100 text-pink-800' },
 }
 
 type StatusFilter = 'all' | 'active' | 'scheduled' | 'completed'
@@ -416,7 +424,10 @@ function CampaignCard({ campaign, onClick, onView, onEdit, onDuplicate, onArchiv
   return (
     <div
       onClick={onClick}
-      className="relative text-left bg-card rounded-xl border border-border p-5 hover:shadow-lg hover:border-primary/50 transition-all group cursor-pointer"
+      className={cn(
+        'relative text-left bg-card rounded-xl border border-border p-5 hover:shadow-lg hover:border-primary/50 transition-all group cursor-pointer',
+        statusConfig.borderClassName
+      )}
     >
       {/* Quick actions button */}
       <div ref={menuRef} className="absolute top-3 right-3 z-10">
@@ -473,9 +484,16 @@ function CampaignCard({ campaign, onClick, onView, onEdit, onDuplicate, onArchiv
         <h3 className="font-semibold text-lg group-hover:text-primary transition-colors">
           {campaign.name}
         </h3>
-        <Badge className={cn('text-xs', statusConfig.className)}>
-          {statusConfig.label}
-        </Badge>
+        <div className="flex gap-1">
+          <Badge className={cn('text-xs', statusConfig.className)}>
+            {statusConfig.label}
+          </Badge>
+          {campaign.content_pillar && CONTENT_PILLAR_LABELS[campaign.content_pillar] && (
+            <Badge className={cn('text-xs', CONTENT_PILLAR_LABELS[campaign.content_pillar].color)}>
+              {CONTENT_PILLAR_LABELS[campaign.content_pillar].label}
+            </Badge>
+          )}
+        </div>
       </div>
 
       {/* Description */}

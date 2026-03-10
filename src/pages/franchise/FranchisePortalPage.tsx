@@ -1,11 +1,13 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useFranchiseeData } from '@/hooks/useFranchiseeData'
+import { useAuth } from '@/contexts/AuthContext'
+import { supabase } from '@/lib/supabase'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Megaphone, ChevronRight, FolderOpen, Calendar } from 'lucide-react'
-import type { Campaign, CampaignStatus, CampaignChannel } from '@/types'
+import { Megaphone, ChevronRight, FolderOpen, Calendar, Lock, User } from 'lucide-react'
+import type { Campaign, CampaignStatus, CampaignChannel, Franchisee } from '@/types'
 
 type FilterTab = 'all' | 'active' | 'pending'
 
@@ -34,8 +36,47 @@ const STATUS_CONFIG: Record<CampaignStatus, { variant: 'default' | 'secondary' |
 
 export default function FranchisePortalPage() {
   const navigate = useNavigate()
+  const { appUser } = useAuth()
   const { campaigns, loading, error } = useFranchiseeData()
   const [activeTab, setActiveTab] = useState<FilterTab>('all')
+  const [franchisee, setFranchisee] = useState<Franchisee | null>(null)
+  const [upcomingCampaigns, setUpcomingCampaigns] = useState<Campaign[]>([])
+
+  // Fetch franchisee profile
+  useEffect(() => {
+    async function fetchFranchiseeProfile() {
+      if (!appUser?.franchisee_id || !appUser?.organization_id) return
+      
+      const { data } = await supabase
+        .from('franchisees')
+        .select('id, name, region, address')
+        .eq('id', appUser.franchisee_id)
+        .eq('organization_id', appUser.organization_id)
+        .single()
+      
+      if (data) setFranchisee(data as Franchisee)
+    }
+    fetchFranchiseeProfile()
+  }, [appUser?.franchisee_id, appUser?.organization_id])
+
+  // Fetch upcoming campaigns (draft/planned, not yet hq_approved)
+  useEffect(() => {
+    async function fetchUpcomingCampaigns() {
+      if (!appUser?.organization_id) return
+      
+      const { data } = await supabase
+        .from('campaigns')
+        .select('id, name, description, status, channels, start_date, end_date, created_at')
+        .eq('organization_id', appUser.organization_id)
+        .in('status', ['draft', 'scheduled'])
+        .eq('hq_approved', false)
+        .order('created_at', { ascending: false })
+        .limit(5)
+      
+      if (data) setUpcomingCampaigns(data as Campaign[])
+    }
+    fetchUpcomingCampaigns()
+  }, [appUser?.organization_id])
 
   const filteredCampaigns = useMemo(() => {
     switch (activeTab) {
@@ -100,6 +141,26 @@ export default function FranchisePortalPage() {
 
   return (
     <div className="space-y-6">
+      {/* Profile Section */}
+      <div className="bg-gradient-to-r from-primary/10 to-primary/5 rounded-xl p-5 border border-primary/20">
+        <div className="flex items-center gap-4">
+          <div className="h-12 w-12 rounded-full bg-primary/20 flex items-center justify-center">
+            <User className="h-6 w-6 text-primary" />
+          </div>
+          <div>
+            <h2 className="text-lg font-semibold text-foreground">
+              {franchisee?.name || appUser?.name || 'Välkommen!'}
+            </h2>
+            {franchisee?.address?.city && (
+              <p className="text-sm text-muted-foreground">{franchisee.address.city}</p>
+            )}
+            {franchisee?.region && !franchisee?.address?.city && (
+              <p className="text-sm text-muted-foreground">{franchisee.region}</p>
+            )}
+          </div>
+        </div>
+      </div>
+
       <div>
         <h1 className="text-2xl font-bold text-foreground">📢 Kampanjportal</h1>
         <p className="text-muted-foreground mt-1">Hantera och granska kampanjer</p>
@@ -158,6 +219,71 @@ export default function FranchisePortalPage() {
               onClick={() => navigate(`/portal/campaign/${campaign.id}`)}
             />
           ))}
+        </div>
+      )}
+
+      {/* Upcoming campaigns section */}
+      {upcomingCampaigns.length > 0 && (
+        <div className="mt-8">
+          <div className="flex items-center gap-2 mb-4">
+            <Lock className="w-5 h-5 text-muted-foreground" />
+            <h2 className="text-lg font-semibold text-muted-foreground">Snart tillgängligt</h2>
+          </div>
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 opacity-60">
+            {upcomingCampaigns.map((campaign) => (
+              <Card 
+                key={campaign.id} 
+                className="relative overflow-hidden cursor-not-allowed"
+              >
+                {/* Lock overlay */}
+                <div className="absolute inset-0 bg-background/50 z-10 flex items-center justify-center">
+                  <div className="bg-muted rounded-full p-3">
+                    <Lock className="w-5 h-5 text-muted-foreground" />
+                  </div>
+                </div>
+                <CardHeader className="pb-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <CardTitle className="text-lg text-muted-foreground line-clamp-1">
+                      {campaign.name}
+                    </CardTitle>
+                    <Badge variant="outline" className="text-muted-foreground">
+                      Förbereds
+                    </Badge>
+                  </div>
+                  {campaign.description && (
+                    <CardDescription className="line-clamp-2">
+                      {campaign.description}
+                    </CardDescription>
+                  )}
+                </CardHeader>
+                <CardContent>
+                  <div className="flex flex-wrap gap-2 mb-3">
+                    {campaign.channels.map((channel) => (
+                      <Badge 
+                        key={channel} 
+                        variant="secondary" 
+                        className="text-xs opacity-50"
+                      >
+                        {CHANNEL_ICONS[channel] || '📢'} {channel}
+                      </Badge>
+                    ))}
+                  </div>
+                  {(campaign.start_date || campaign.end_date) && (
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                      <Calendar className="w-3 h-3" />
+                      {campaign.start_date && (
+                        <span>{new Date(campaign.start_date).toLocaleDateString('sv-SE')}</span>
+                      )}
+                      {campaign.start_date && campaign.end_date && <span>–</span>}
+                      {campaign.end_date && (
+                        <span>{new Date(campaign.end_date).toLocaleDateString('sv-SE')}</span>
+                      )}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            ))}
+          </div>
         </div>
       )}
     </div>

@@ -273,8 +273,12 @@ function TimelineView({
   selected: string | null
   setSelected: (id: string | null) => void
 }) {
+  // Calculate total width needed for the timeline
+  const totalWidth = labelW + months.length * colW
+  
   return (
-    <div style={{ position: "relative" }}>
+    <div style={{ position: "relative", overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
+      <div style={{ minWidth: totalWidth }}>
       {/* Säsongsrad */}
       <div style={{ display: "flex" }}>
         <div style={{ width: labelW, flexShrink: 0 }} />
@@ -446,6 +450,7 @@ function TimelineView({
           </div>
         )}
       </div>
+      </div>
     </div>
   )
 }
@@ -460,12 +465,7 @@ function CalendarView({
   setSelected: (id: string | null) => void
 }) {
   return (
-    <div style={{
-      display: "grid",
-      gridTemplateColumns: "repeat(4, 1fr)",
-      gap: 16,
-      padding: 16
-    }}>
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 p-4">
       {weeks.map((w, idx) => {
         const isCurrent = idx === currentMonth
         const monthCampaigns = campaigns.filter(c => c.startMonth <= idx && c.endMonth >= idx)

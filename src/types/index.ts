@@ -77,13 +77,15 @@ export interface Campaign {
   channels: CampaignChannel[]
   start_date?: string
   end_date?: string
-  target_persona?: Record<string, unknown>
+  target_persona?: Record<string, unknown> | string
   key_messages: string[]
   created_by?: string
   created_at: string
   updated_at: string
   rejection_comment?: string
   local_customization?: { phone?: string; city?: string; contactName?: string }
+  content_pillar?: number  // 1-5, innehållspelare från publiceringskalendern
+  hq_approved?: boolean  // WAS-411: Internal HQ signoff - franchise only sees approved campaigns
 }
 
 export type TemplateFormat =
@@ -278,4 +280,22 @@ export interface WebhookEvent {
   next_retry_at?: string
   created_at: string
   updated_at: string
+}
+
+// ============ WAS-412: Scheduled Posts (Post-level Calendar) ============
+
+export type ScheduledPostStatus = 'draft' | 'scheduled' | 'published'
+
+export interface ScheduledPost {
+  id: string
+  campaign_id?: string
+  campaign_name?: string
+  channel: CampaignChannel
+  scheduled_date: string // ISO date (YYYY-MM-DD)
+  status: ScheduledPostStatus
+  headline?: string
+  body?: string
+  org_id: string
+  created_at?: string
+  updated_at?: string
 }

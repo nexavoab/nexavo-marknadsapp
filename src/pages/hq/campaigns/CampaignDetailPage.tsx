@@ -7,6 +7,9 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useCampaigns, type CampaignUpdateData } from '@/hooks/useCampaigns'
 import { useAssets } from '@/hooks/useAssets'
+import { useAuth } from '@/contexts/AuthContext'
+import { useBrandGuardian, SCORE_THRESHOLDS, type BrandGuardianResult } from '@/hooks/useBrandGuardian'
+import { useBrand } from '@/hooks/useBrand'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
@@ -30,12 +33,40 @@ import {
   User,
   MessageSquare,
   Sparkles,
+  Monitor,
+  ShieldCheck,
+  ShieldX,
+  Share2,
+  Facebook,
+  Check,
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { supabase } from '@/lib/supabase'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog'
 import { LocalVariantsTab } from '@/components/campaigns/LocalVariantsTab'
 import { CopyGeneratorSheet } from '@/components/campaigns/CopyGeneratorSheet'
+import { CampaignChat } from '@/components/campaigns/CampaignChat'
+import { DeviceMockup, getFormatDisplayName, getFormatIcon } from '@/components/campaign/DeviceMockup'
+import type { TemplateFormat } from '@/types'
 
-type TabType = 'assets' | 'variants' | 'copy'
+type TabType = 'assets' | 'variants' | 'copy' | 'chat' | 'preview'
+
+const CONTENT_PILLAR_LABELS: Record<number, { label: string; color: string }> = {
+  1: { label: 'Pelare 1', color: 'bg-blue-100 text-blue-800' },
+  2: { label: 'Pelare 2', color: 'bg-purple-100 text-purple-800' },
+  3: { label: 'Pelare 3', color: 'bg-green-100 text-green-800' },
+  4: { label: 'Pelare 4', color: 'bg-orange-100 text-orange-800' },
+  5: { label: 'Pelare 5', color: 'bg-pink-100 text-pink-800' },
+}
+
+const PREVIEW_FORMATS: TemplateFormat[] = ['facebook_feed', 'instagram_story', 'linkedin_post']
 
 const STATUS_CONFIG: Record<CampaignStatus, { label: string; className: string }> = {
   draft: { label: 'Utkast', className: 'bg-muted text-muted-foreground' },
@@ -63,11 +94,30 @@ const CHANNEL_LABELS: Record<CampaignChannel, string> = {
 const ALL_CHANNELS: CampaignChannel[] = ['facebook', 'instagram', 'google', 'print', 'display', 'linkedin', 'tiktok', 'email', 'print_flyer']
 const ALL_STATUSES: CampaignStatus[] = ['draft', 'scheduled', 'active', 'completed', 'archived']
 
+// Meta/Facebook pages available for publishing
+const META_PAGES = [
+  { id: '582048978317091', name: 'Seniorbolaget Sverige' },
+  { id: '532949189893176', name: 'Seniorbolaget Skaraborg' },
+  { id: '690852324112544', name: 'Seniorbolaget Falkenberg & Varberg' },
+  { id: '731909380006311', name: 'Seniorbolaget Lerum & Partille' },
+  { id: '848116255042805', name: 'Seniorbolaget Trollhättan / Vänersborg' },
+  { id: '953952134460637', name: 'Seniorbolaget Borås' },
+  { id: '943525188836962', name: 'Seniorbolaget Sundsvall & Timrå' },
+  { id: '908759378992047', name: 'Seniorbolaget Mölndal och Härryda' },
+  { id: '997121616808598', name: 'Seniorbolaget Kungälv' },
+  { id: '915601934977862', name: 'Seniorbolaget Ulricehamn' },
+  { id: '993940537134261', name: 'Seniorbolaget Trelleborg' },
+  { id: '1001959409667574', name: 'Seniorbolaget Åmål' },
+]
+
 export default function CampaignDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const { fetchCampaign, updateCampaign, updateCampaignStatus, duplicateCampaign, archiveCampaign } = useCampaigns()
+  const { fetchCampaign, updateCampaign, updateCampaignStatus, updateHqApproved, duplicateCampaign, archiveCampaign } = useCampaigns()
   const { fetchAssets } = useAssets()
+  const { appUser } = useAuth()
+  const { brand } = useBrand()
+  const { checkAndApprove, isChecking, getScoreBadgeClasses } = useBrandGuardian()
 
   const [campaign, setCampaign] = useState<Campaign | null>(null)
   const [assets, setAssets] = useState<Asset[]>([])
@@ -79,6 +129,20 @@ export default function CampaignDetailPage() {
   const [isEditOpen, setIsEditOpen] = useState(false)
   const [editForm, setEditForm] = useState<CampaignUpdateData>({})
   const [isSaving, setIsSaving] = useState(false)
+  
+  // WAS-411: HQ signoff state
+  const [isTogglingHqApproved, setIsTogglingHqApproved] = useState(false)
+  const isHqAdmin = appUser?.role === 'hq_admin'
+  
+  // Brand Guardian state
+  const [guardianResult, setGuardianResult] = useState<BrandGuardianResult | null>(null)
+  const [showManualApproveDialog, setShowManualApproveDialog] = useState(false)
+  
+  // WAS-416: Meta publishing state
+  const [isPublishDialogOpen, setIsPublishDialogOpen] = useState(false)
+  const [selectedPageIds, setSelectedPageIds] = useState<string[]>([])
+  const [isPublishing, setIsPublishing] = useState(false)
+  const [customMessage, setCustomMessage] = useState('')
 
   useEffect(() => {
     if (id) loadCampaign(id)
@@ -129,6 +193,7 @@ export default function CampaignDetailPage() {
       end_date: campaign.end_date || '',
       target_persona: campaign.target_persona || null,
       key_messages: campaign.key_messages || [],
+      content_pillar: campaign.content_pillar || null,
     })
     setIsEditOpen(true)
   }
@@ -179,6 +244,142 @@ export default function CampaignDetailPage() {
     }
   }
 
+  // WAS-411: Toggle HQ internal signoff with Brand Guardian check
+  const handleToggleHqApproved = async (forceApprove = false) => {
+    if (!campaign) return
+
+    // If removing approval, no check needed
+    if (campaign.hq_approved) {
+      setIsTogglingHqApproved(true)
+      try {
+        await updateHqApproved(campaign.id, false)
+        setCampaign({ ...campaign, hq_approved: false })
+        setGuardianResult(null)
+        toast.success('Intern godkännande borttagen - kampanjen är nu dold för franchise')
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : 'Kunde inte uppdatera intern status')
+      } finally {
+        setIsTogglingHqApproved(false)
+      }
+      return
+    }
+
+    // Run Brand Guardian check before approving
+    setIsTogglingHqApproved(true)
+    try {
+      const result = await checkAndApprove(campaign, brand)
+      setGuardianResult(result)
+
+      // Score ≥85: Auto-approve
+      if (result.autoApproved) {
+        await updateHqApproved(campaign.id, true)
+        setCampaign({ ...campaign, hq_approved: true })
+        toast.success(`✅ Brand Guardian: Godkänd automatiskt (score: ${result.score})`)
+        return
+      }
+
+      // Score 70-84: Show manual approval dialog (unless force approve)
+      if (!result.blocked) {
+        if (forceApprove) {
+          await updateHqApproved(campaign.id, true)
+          setCampaign({ ...campaign, hq_approved: true })
+          toast.success(`✅ Kampanjen godkänd manuellt (Brand Guardian score: ${result.score})`)
+        } else {
+          setShowManualApproveDialog(true)
+        }
+        return
+      }
+
+      // Score <70: Block with error
+      const issuesSummary = result.issues.slice(0, 3).join(' ')
+      toast.error(`❌ Brand Guardian: Ej godkänd (score: ${result.score}). Åtgärda: ${issuesSummary}`)
+      
+    } catch (err) {
+      console.error('[BrandGuardian] Error:', err)
+      toast.error(err instanceof Error ? err.message : 'Kunde inte köra Brand Guardian-check')
+    } finally {
+      setIsTogglingHqApproved(false)
+    }
+  }
+
+  // Handle manual approval from dialog
+  const handleManualApprove = async () => {
+    setShowManualApproveDialog(false)
+    await handleToggleHqApproved(true)
+  }
+
+  // WAS-416: Toggle page selection for Meta publishing
+  const handleTogglePage = (pageId: string) => {
+    setSelectedPageIds(prev => 
+      prev.includes(pageId) 
+        ? prev.filter(id => id !== pageId)
+        : [...prev, pageId]
+    )
+  }
+
+  // WAS-416: Select/deselect all pages
+  const handleSelectAllPages = () => {
+    if (selectedPageIds.length === META_PAGES.length) {
+      setSelectedPageIds([])
+    } else {
+      setSelectedPageIds(META_PAGES.map(p => p.id))
+    }
+  }
+
+  // WAS-416: Publish to Meta (Facebook/Instagram)
+  const handlePublishToMeta = async () => {
+    if (!campaign || selectedPageIds.length === 0) return
+
+    setIsPublishing(true)
+    try {
+      const { data, error } = await supabase.functions.invoke('publish-to-meta', {
+        body: {
+          campaign_id: campaign.id,
+          page_ids: selectedPageIds,
+          message: customMessage || undefined,
+        },
+      })
+
+      if (error) {
+        throw new Error(error.message || 'Kunde inte publicera till Meta')
+      }
+
+      if (data?.ok) {
+        const { summary } = data
+        toast.success(
+          `✅ Publicerat till ${summary.successful} av ${summary.total} sidor`,
+          { duration: 5000 }
+        )
+        
+        // Update local campaign status if it was updated
+        if (summary.successful > 0) {
+          setCampaign({ ...campaign, status: 'published' as CampaignStatus })
+        }
+
+        // Show details for any failures
+        if (summary.failed > 0) {
+          const failedPages = data.published
+            .filter((p: { error?: string }) => p.error)
+            .map((p: { page_name: string; error: string }) => `${p.page_name}: ${p.error}`)
+            .join('\n')
+          console.error('[Meta Publish] Failures:', failedPages)
+          toast.error(`${summary.failed} sidor misslyckades`, { duration: 5000 })
+        }
+
+        setIsPublishDialogOpen(false)
+        setSelectedPageIds([])
+        setCustomMessage('')
+      } else {
+        throw new Error(data?.error || 'Publicering misslyckades')
+      }
+    } catch (err) {
+      console.error('[Meta Publish] Error:', err)
+      toast.error(err instanceof Error ? err.message : 'Kunde inte publicera till Meta')
+    } finally {
+      setIsPublishing(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className="p-8 flex items-center justify-center">
@@ -220,6 +421,29 @@ export default function CampaignDetailPage() {
             <Badge className={cn('text-sm', statusConfig.className)}>
               {statusConfig.label}
             </Badge>
+            {campaign.content_pillar && CONTENT_PILLAR_LABELS[campaign.content_pillar] && (
+              <Badge className={cn('text-sm', CONTENT_PILLAR_LABELS[campaign.content_pillar].color)}>
+                {CONTENT_PILLAR_LABELS[campaign.content_pillar].label}
+              </Badge>
+            )}
+            {/* WAS-411: HQ Approval Badge */}
+            {campaign.hq_approved ? (
+              <Badge className="text-sm bg-green-100 text-green-800">
+                <ShieldCheck className="w-3 h-3 mr-1" />
+                Synlig för franchise
+              </Badge>
+            ) : (
+              <Badge className="text-sm bg-amber-100 text-amber-800">
+                <ShieldX className="w-3 h-3 mr-1" />
+                Ej synlig för franchise
+              </Badge>
+            )}
+            {/* Brand Guardian Score Badge */}
+            {guardianResult && (
+              <Badge className={cn('text-sm border', getScoreBadgeClasses(guardianResult.score))}>
+                BG: {guardianResult.score}
+              </Badge>
+            )}
           </div>
           {campaign.description && (
             <p className="text-muted-foreground">{campaign.description}</p>
@@ -253,6 +477,15 @@ export default function CampaignDetailPage() {
             <Copy className="w-4 h-4 mr-1" />
             Duplicera
           </Button>
+          {/* WAS-416: Publish to Meta button */}
+          <Button 
+            variant="outline" 
+            onClick={() => setIsPublishDialogOpen(true)}
+            className="border-blue-500 text-blue-600 hover:bg-blue-50"
+          >
+            <Share2 className="w-4 h-4 mr-1" />
+            Publicera på Facebook
+          </Button>
           {campaign.status === 'draft' && (
             <Button onClick={() => handleStatusChange('active')}>
               <Play className="w-4 h-4 mr-1" />
@@ -271,6 +504,27 @@ export default function CampaignDetailPage() {
               Arkivera
             </Button>
           )}
+          {/* WAS-411: HQ Internal Signoff with Brand Guardian - only visible for hq_admin */}
+          {isHqAdmin && (
+            <Button
+              variant={campaign.hq_approved ? 'outline' : 'default'}
+              onClick={() => handleToggleHqApproved()}
+              disabled={isTogglingHqApproved || isChecking}
+              className={campaign.hq_approved ? 'border-green-500 text-green-700 hover:bg-green-50' : ''}
+            >
+              {(isTogglingHqApproved || isChecking) ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                  {isChecking ? 'Kontrollerar...' : ''}
+                </>
+              ) : campaign.hq_approved ? (
+                <ShieldCheck className="w-4 h-4 mr-1" />
+              ) : (
+                <ShieldX className="w-4 h-4 mr-1" />
+              )}
+              {campaign.hq_approved ? 'Internt godkänd ✓' : 'Markera internt godkänd'}
+            </Button>
+          )}
         </div>
       </div>
 
@@ -278,19 +532,27 @@ export default function CampaignDetailPage() {
       {(campaign.target_persona || (campaign.key_messages && campaign.key_messages.length > 0)) && (
         <div className="grid gap-4 md:grid-cols-2 mb-8">
           {/* Target Persona */}
-          {campaign.target_persona && Object.keys(campaign.target_persona).length > 0 && (
+          {campaign.target_persona && (
+            typeof campaign.target_persona === 'string'
+              ? campaign.target_persona.trim().length > 0
+              : Object.keys(campaign.target_persona).length > 0
+          ) && (
             <div className="bg-card rounded-lg border border-border p-4">
               <div className="flex items-center gap-2 mb-3">
                 <User className="w-4 h-4 text-muted-foreground" />
                 <h3 className="font-medium">Målgrupp / Persona</h3>
               </div>
               <div className="space-y-2 text-sm">
-                {Object.entries(campaign.target_persona).map(([key, value]) => (
-                  <div key={key} className="flex gap-2">
-                    <span className="text-muted-foreground capitalize">{key.replace(/_/g, ' ')}:</span>
-                    <span>{typeof value === 'object' ? JSON.stringify(value) : String(value)}</span>
-                  </div>
-                ))}
+                {typeof campaign.target_persona === 'string' ? (
+                  <p>{campaign.target_persona}</p>
+                ) : (
+                  Object.entries(campaign.target_persona).map(([key, value]) => (
+                    <div key={key} className="flex gap-2">
+                      <span className="text-muted-foreground capitalize">{key.replace(/_/g, ' ')}:</span>
+                      <span>{typeof value === 'object' ? JSON.stringify(value) : String(value)}</span>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
           )}
@@ -354,6 +616,30 @@ export default function CampaignDetailPage() {
             <Sparkles className="w-4 h-4" />
             AI Copy
           </button>
+          <button
+            className={cn(
+              'px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors flex items-center gap-2',
+              activeTab === 'chat'
+                ? 'border-primary text-primary'
+                : 'border-transparent text-muted-foreground hover:text-foreground'
+            )}
+            onClick={() => setActiveTab('chat')}
+          >
+            <MessageSquare className="w-4 h-4" />
+            💬 Chat
+          </button>
+          <button
+            className={cn(
+              'px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors flex items-center gap-2',
+              activeTab === 'preview'
+                ? 'border-primary text-primary'
+                : 'border-transparent text-muted-foreground hover:text-foreground'
+            )}
+            onClick={() => setActiveTab('preview')}
+          >
+            <Monitor className="w-4 h-4" />
+            Preview
+          </button>
         </div>
       </div>
 
@@ -382,6 +668,14 @@ export default function CampaignDetailPage() {
         <CopyGeneratorSheet campaign={campaign} />
       )}
 
+      {activeTab === 'chat' && (
+        <CampaignChat campaign={campaign} />
+      )}
+
+      {activeTab === 'preview' && (
+        <DevicePreviewTab campaign={campaign} assets={assets} />
+      )}
+
       {/* Edit Modal */}
       {isEditOpen && (
         <EditCampaignModal
@@ -392,6 +686,158 @@ export default function CampaignDetailPage() {
           isSaving={isSaving}
         />
       )}
+
+      {/* Brand Guardian Manual Approval Dialog */}
+      {showManualApproveDialog && guardianResult && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-card rounded-lg border border-border w-full max-w-md p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className={cn(
+                'w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold',
+                getScoreBadgeClasses(guardianResult.score)
+              )}>
+                {guardianResult.score}
+              </div>
+              <div>
+                <h3 className="font-semibold text-lg">Brand Guardian</h3>
+                <p className="text-sm text-muted-foreground">Manuell granskning krävs</p>
+              </div>
+            </div>
+            
+            <p className="text-sm mb-4">
+              Kampanjen fick score <strong>{guardianResult.score}</strong> (kräver {SCORE_THRESHOLDS.AUTO_APPROVE}+ för auto-godkännande).
+              Du kan fortfarande godkänna manuellt.
+            </p>
+
+            {guardianResult.issues.length > 0 && (
+              <div className="bg-muted rounded-lg p-3 mb-4 max-h-40 overflow-y-auto">
+                <p className="text-xs font-medium text-muted-foreground mb-2">Problem att åtgärda:</p>
+                <ul className="space-y-1 text-sm">
+                  {guardianResult.issues.map((issue, i) => (
+                    <li key={i}>{issue}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            <div className="flex gap-2 justify-end">
+              <Button 
+                variant="outline" 
+                onClick={() => setShowManualApproveDialog(false)}
+              >
+                Avbryt
+              </Button>
+              <Button onClick={handleManualApprove}>
+                <ShieldCheck className="w-4 h-4 mr-1" />
+                Godkänn ändå
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* WAS-416: Meta Publishing Dialog */}
+      <Dialog open={isPublishDialogOpen} onOpenChange={setIsPublishDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Facebook className="w-5 h-5 text-blue-600" />
+              Publicera på Facebook
+            </DialogTitle>
+            <DialogDescription>
+              Välj vilka Facebook-sidor du vill publicera kampanjen till.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            {/* Select all toggle */}
+            <div className="flex items-center justify-between pb-2 border-b border-border">
+              <span className="text-sm font-medium">Välj sidor</span>
+              <button
+                type="button"
+                onClick={handleSelectAllPages}
+                className="text-sm text-primary hover:underline"
+              >
+                {selectedPageIds.length === META_PAGES.length ? 'Avmarkera alla' : 'Välj alla'}
+              </button>
+            </div>
+
+            {/* Page checkboxes */}
+            <div className="space-y-2 max-h-60 overflow-y-auto">
+              {META_PAGES.map((page) => (
+                <button
+                  key={page.id}
+                  type="button"
+                  onClick={() => handleTogglePage(page.id)}
+                  className={cn(
+                    'flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors w-full text-left',
+                    selectedPageIds.includes(page.id)
+                      ? 'border-blue-500 bg-blue-50'
+                      : 'border-border hover:bg-muted/50'
+                  )}
+                >
+                  <div
+                    className={cn(
+                      'w-5 h-5 rounded border flex items-center justify-center transition-colors',
+                      selectedPageIds.includes(page.id)
+                        ? 'bg-blue-600 border-blue-600'
+                        : 'border-muted-foreground'
+                    )}
+                  >
+                    {selectedPageIds.includes(page.id) && (
+                      <Check className="w-3 h-3 text-white" />
+                    )}
+                  </div>
+                  <span className="text-sm">{page.name}</span>
+                </button>
+              ))}
+            </div>
+
+            {/* Custom message (optional) */}
+            <div className="pt-2">
+              <label className="block text-sm font-medium mb-1">
+                Anpassat meddelande (valfritt)
+              </label>
+              <textarea
+                className="w-full min-h-[80px] px-3 py-2 rounded-md border border-input bg-background text-sm resize-none"
+                placeholder="Lämna tomt för att använda kampanjens standardtext..."
+                value={customMessage}
+                onChange={(e) => setCustomMessage(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Om du lämnar detta tomt används kampanjens namn, beskrivning och nyckelbudskap.
+              </p>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setIsPublishDialogOpen(false)}
+              disabled={isPublishing}
+            >
+              Avbryt
+            </Button>
+            <Button
+              onClick={handlePublishToMeta}
+              disabled={isPublishing || selectedPageIds.length === 0}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              {isPublishing ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                  Publicerar...
+                </>
+              ) : (
+                <>
+                  <Share2 className="w-4 h-4 mr-1" />
+                  Publicera ({selectedPageIds.length})
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
@@ -468,6 +914,26 @@ function EditCampaignModal({ editForm, setEditForm, onSave, onClose, isSaving }:
                   {STATUS_CONFIG[status].label}
                 </option>
               ))}
+            </select>
+          </div>
+
+          {/* Content Pillar */}
+          <div>
+            <label className="block text-sm font-medium mb-1">Innehållspelare</label>
+            <select
+              className="w-full px-3 py-2 rounded-md border border-input bg-background text-sm"
+              value={editForm.content_pillar || ''}
+              onChange={(e) => setEditForm({ 
+                ...editForm, 
+                content_pillar: e.target.value ? Number(e.target.value) : null 
+              })}
+            >
+              <option value="">Ingen pelare vald</option>
+              <option value="1">Pelare 1</option>
+              <option value="2">Pelare 2</option>
+              <option value="3">Pelare 3</option>
+              <option value="4">Pelare 4</option>
+              <option value="5">Pelare 5</option>
             </select>
           </div>
 
@@ -639,6 +1105,121 @@ function AssetCard({ asset }: AssetCardProps) {
             >
               <Download className="w-4 h-4" />
             </a>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ============ Device Preview Tab ============
+
+interface DevicePreviewTabProps {
+  campaign: Campaign
+  assets: Asset[]
+}
+
+function DevicePreviewTab({ campaign, assets }: DevicePreviewTabProps) {
+  const [selectedFormat, setSelectedFormat] = useState<TemplateFormat>('facebook_feed')
+
+  // Find an asset image to show in the preview
+  const previewImage = assets.find(a => 
+    (a.type === 'image' || a.type === 'composite') && a.public_url
+  )?.public_url
+
+  return (
+    <div className="space-y-6">
+      {/* Format selector tabs */}
+      <div className="flex gap-2 flex-wrap">
+        {PREVIEW_FORMATS.map((format) => (
+          <button
+            key={format}
+            onClick={() => setSelectedFormat(format)}
+            className={cn(
+              'px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2',
+              selectedFormat === format
+                ? 'bg-primary text-primary-foreground'
+                : 'bg-muted hover:bg-muted/80 text-muted-foreground'
+            )}
+          >
+            <span>{getFormatIcon(format)}</span>
+            {getFormatDisplayName(format)}
+          </button>
+        ))}
+      </div>
+
+      {/* Preview area */}
+      <div className="flex flex-col lg:flex-row gap-8 items-start">
+        {/* Device mockup */}
+        <div className="flex-shrink-0">
+          <DeviceMockup format={selectedFormat} imageUrl={previewImage}>
+            {/* Overlay content if no image */}
+            {!previewImage && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center p-4 text-center">
+                <h3 className="text-white font-bold text-sm mb-1 drop-shadow-lg">
+                  {campaign.name}
+                </h3>
+                {campaign.description && (
+                  <p className="text-white/80 text-xs line-clamp-3 drop-shadow">
+                    {campaign.description}
+                  </p>
+                )}
+              </div>
+            )}
+          </DeviceMockup>
+        </div>
+
+        {/* Campaign info panel */}
+        <div className="flex-1 bg-card rounded-lg border border-border p-6 space-y-4">
+          <div>
+            <h3 className="font-semibold text-lg mb-1">Kampanjförhandsvisning</h3>
+            <p className="text-sm text-muted-foreground">
+              Så här kan kampanjen se ut i {getFormatDisplayName(selectedFormat)}
+            </p>
+          </div>
+
+          <div className="space-y-3">
+            <div>
+              <span className="text-xs text-muted-foreground">Kampanjnamn</span>
+              <p className="font-medium">{campaign.name}</p>
+            </div>
+            
+            {campaign.description && (
+              <div>
+                <span className="text-xs text-muted-foreground">Beskrivning</span>
+                <p className="text-sm">{campaign.description}</p>
+              </div>
+            )}
+
+            {campaign.key_messages && campaign.key_messages.length > 0 && (
+              <div>
+                <span className="text-xs text-muted-foreground">Nyckelbudskap</span>
+                <ul className="text-sm mt-1 space-y-1">
+                  {campaign.key_messages.slice(0, 3).map((msg, i) => (
+                    <li key={i} className="flex gap-2">
+                      <span className="text-primary">•</span>
+                      <span>{msg}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {campaign.content_pillar && CONTENT_PILLAR_LABELS[campaign.content_pillar] && (
+              <div>
+                <span className="text-xs text-muted-foreground">Innehållspelare</span>
+                <Badge className={cn('mt-1', CONTENT_PILLAR_LABELS[campaign.content_pillar].color)}>
+                  {CONTENT_PILLAR_LABELS[campaign.content_pillar].label}
+                </Badge>
+              </div>
+            )}
+          </div>
+
+          {assets.length === 0 && (
+            <div className="bg-muted/50 rounded-lg p-4 text-center text-sm text-muted-foreground">
+              <p>Inga bilder kopplade till kampanjen ännu.</p>
+              <p className="text-xs mt-1">Lägg till bilder i Material-fliken för att se dem i förhandsvisningen.</p>
+            </div>
           )}
         </div>
       </div>

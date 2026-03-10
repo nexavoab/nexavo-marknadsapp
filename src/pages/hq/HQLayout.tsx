@@ -7,7 +7,7 @@ import { AIProvider } from '@/contexts/AIContext'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import NotificationBell from '@/components/notifications/NotificationBell'
-import AIChatPanel from '@/components/ai/AIChatPanel'
+import { FloatingChat } from '@/components/FloatingChat'
 import { toast } from 'sonner'
 import {
   LayoutDashboard,
@@ -27,8 +27,13 @@ import {
   Download,
   MapPin,
   ChevronDown,
+  ChevronRight,
   FileDown,
-  FlaskConical
+  FlaskConical,
+  PenTool,
+  Send,
+  BarChart3,
+  Eye
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -62,24 +67,188 @@ import AIPipelineTestPage from './AIPipelineTestPage'
 // A/B Test page
 import ABTestPage from './ABTestPage'
 
+// Competitor Intelligence
+import CompetitorIntelligencePage from './CompetitorIntelligencePage'
+
 // 404 page
 import NotFoundPage from '../NotFoundPage'
 
-const navItems = [
-  { to: '/hq', icon: LayoutDashboard, label: 'Dashboard', end: true },
-  { to: '/hq/campaigns', icon: Megaphone, label: 'Kampanjer' },
-  { to: '/hq/ab-test', icon: FlaskConical, label: 'A/B-test' },
-  { to: '/hq/franchisees', icon: Users, label: 'Franchisetagare' },
-  { to: '/hq/compliance', icon: ShieldCheck, label: 'Kampanjräckvidd' },
-  { to: '/hq/calendar', icon: Calendar, label: 'Kalender' },
-  { to: '/hq/annual-plan', icon: CalendarRange, label: 'Årshjul' },
-  { to: '/hq/brand', icon: Palette, label: 'Varumärke' },
-  { to: '/hq/integrations', icon: Plug, label: 'Integrationer' },
+// Navigation sections with intention-based grouping
+type NavItem = { to: string; icon: React.ComponentType<{ className?: string }>; label: string; end?: boolean }
+
+interface NavSectionConfig {
+  id: string
+  icon: React.ComponentType<{ className?: string }>
+  label: string
+  defaultOpen: boolean
+  items: NavItem[]
+}
+
+const navSections: NavSectionConfig[] = [
+  {
+    id: 'planera',
+    icon: Calendar,
+    label: 'PLANERA',
+    defaultOpen: true,
+    items: [
+      { to: '/hq/calendar', icon: Calendar, label: 'Kalender' },
+      { to: '/hq/campaigns', icon: Megaphone, label: 'Kampanjer' },
+      { to: '/hq/annual-plan', icon: CalendarRange, label: 'Årshjul' },
+    ]
+  },
+  {
+    id: 'skapa',
+    icon: PenTool,
+    label: 'SKAPA',
+    defaultOpen: true,
+    items: [
+      { to: '/hq/ab-test', icon: FlaskConical, label: 'AI Copy' },
+      { to: '/hq/brand', icon: Palette, label: 'Material' },
+    ]
+  },
+  {
+    id: 'distribuera',
+    icon: Send,
+    label: 'DISTRIBUERA',
+    defaultOpen: false,
+    items: [
+      { to: '/hq/compliance', icon: ShieldCheck, label: 'Kampanjräckvidd' },
+      { to: '/hq/integrations', icon: Plug, label: 'Integrationer' },
+    ]
+  },
+  {
+    id: 'analysera',
+    icon: BarChart3,
+    label: 'ANALYSERA',
+    defaultOpen: false,
+    items: [
+      { to: '/hq', icon: LayoutDashboard, label: 'Dashboard', end: true },
+      { to: '/hq/franchisees', icon: Users, label: 'Franchisetagare' },
+      { to: '/hq/competitor-intelligence', icon: Eye, label: 'Konkurrentanalys' },
+    ]
+  },
+]
+
+// Standalone items outside sections
+const standaloneNavItems: NavItem[] = [
   { to: '/hq/settings', icon: Settings, label: 'Inställningar' },
 ]
 
+// NavSection component with expand/collapse
+function NavSection({ 
+  section, 
+  collapsed, 
+  onClose,
+  isOpen,
+  onToggle
+}: { 
+  section: NavSectionConfig
+  collapsed: boolean
+  onClose?: () => void
+  isOpen: boolean
+  onToggle: () => void
+}) {
+  const location = useLocation()
+  
+  // Check if any item in this section is active
+  const hasActiveItem = section.items.some(item => {
+    if (item.end) {
+      return location.pathname === item.to
+    }
+    return location.pathname.startsWith(item.to)
+  })
+
+  if (collapsed) {
+    // In collapsed mode, show only icons for items
+    return (
+      <div className="mb-1">
+        {section.items.map((item) => (
+          <NavLink
+            key={item.to}
+            to={item.to}
+            end={item.end}
+            onClick={onClose}
+            title={item.label}
+            className={({ isActive }) =>
+              cn(
+                'flex items-center justify-center rounded-lg p-2 mx-auto w-10 h-10 transition-colors',
+                isActive
+                  ? 'bg-primary/20 text-primary font-medium'
+                  : 'text-slate-400 hover:bg-white/5 hover:text-white'
+              )
+            }
+          >
+            <item.icon className="h-5 w-5" />
+          </NavLink>
+        ))}
+      </div>
+    )
+  }
+
+  return (
+    <div className="mb-1">
+      {/* Section header */}
+      <button
+        onClick={onToggle}
+        className={cn(
+          'w-full flex items-center gap-2 px-3 py-2 text-xs font-semibold uppercase tracking-wider rounded-lg transition-colors',
+          hasActiveItem ? 'text-primary' : 'text-slate-500 hover:text-slate-300'
+        )}
+      >
+        <section.icon className="h-4 w-4" />
+        <span className="flex-1 text-left">{section.label}</span>
+        <ChevronRight 
+          className={cn(
+            'h-4 w-4 transition-transform duration-200',
+            isOpen && 'rotate-90'
+          )} 
+        />
+      </button>
+      
+      {/* Section items */}
+      <div className={cn('overflow-hidden transition-all duration-200', !isOpen && 'hidden')}>
+        {section.items.map((item) => (
+          <NavLink
+            key={item.to}
+            to={item.to}
+            end={item.end}
+            onClick={onClose}
+            className={({ isActive }) =>
+              cn(
+                'flex items-center gap-3 px-3 py-2 pl-9 rounded-lg text-sm transition-colors',
+                isActive
+                  ? 'bg-primary/10 text-primary font-medium'
+                  : 'text-slate-400 hover:bg-white/5 hover:text-white'
+              )
+            }
+          >
+            <item.icon className="h-4 w-4" />
+            {item.label}
+          </NavLink>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 function Sidebar({ onClose, collapsed = false }: { onClose?: () => void; collapsed?: boolean }) {
   const { appUser, signOut } = useAuth()
+  
+  // Section open state - initialize from defaultOpen values
+  const [openSections, setOpenSections] = useState<Record<string, boolean>>(() => {
+    const initial: Record<string, boolean> = {}
+    navSections.forEach(section => {
+      initial[section.id] = section.defaultOpen
+    })
+    return initial
+  })
+
+  const toggleSection = (sectionId: string) => {
+    setOpenSections(prev => ({
+      ...prev,
+      [sectionId]: !prev[sectionId]
+    }))
+  }
 
   return (
     <aside className="flex flex-col h-full bg-slate-900 text-white">
@@ -96,13 +265,25 @@ function Sidebar({ onClose, collapsed = false }: { onClose?: () => void; collaps
         )}
       </div>
       <Separator className="bg-slate-700" />
-      {!collapsed && (
-        <div className="px-4 pt-4 pb-2">
-          <span className="text-xs font-medium text-slate-500 uppercase tracking-wider">Huvudmeny</span>
-        </div>
-      )}
-      <nav className={cn('flex-1', collapsed ? 'p-1' : 'p-2')}>
-        {navItems.map((item) => (
+      
+      <nav className={cn('flex-1 overflow-y-auto', collapsed ? 'p-1' : 'p-2')}>
+        {/* Intention-based sections */}
+        {navSections.map((section) => (
+          <NavSection
+            key={section.id}
+            section={section}
+            collapsed={collapsed}
+            onClose={onClose}
+            isOpen={openSections[section.id] ?? section.defaultOpen}
+            onToggle={() => toggleSection(section.id)}
+          />
+        ))}
+        
+        {/* Separator before standalone items */}
+        {!collapsed && <Separator className="bg-slate-700 my-2" />}
+        
+        {/* Standalone items (Settings) */}
+        {standaloneNavItems.map((item) => (
           <NavLink
             key={item.to}
             to={item.to}
@@ -114,7 +295,7 @@ function Sidebar({ onClose, collapsed = false }: { onClose?: () => void; collaps
                 'flex items-center rounded-lg text-sm transition-colors',
                 collapsed ? 'justify-center p-2 mx-auto w-10 h-10' : 'gap-3 px-3 py-2',
                 isActive
-                  ? 'bg-white/10 text-white font-medium'
+                  ? 'bg-primary/10 text-primary font-medium'
                   : 'text-slate-400 hover:bg-white/5 hover:text-white'
               )
             }
@@ -124,6 +305,7 @@ function Sidebar({ onClose, collapsed = false }: { onClose?: () => void; collaps
           </NavLink>
         ))}
       </nav>
+      
       <Separator className="bg-slate-700" />
       <div className={cn('p-4', collapsed && 'p-2')}>
         {!collapsed && (
@@ -237,14 +419,14 @@ function TopbarFilters() {
 
   return (
     <>
-      {/* Period Filter */}
-      <div ref={periodRef} className="relative">
+      {/* Period Filter - hidden on smallest screens */}
+      <div ref={periodRef} className="relative hidden sm:block">
         <button
           onClick={() => setPeriodOpen(!periodOpen)}
-          className="flex items-center gap-2 px-3 py-1.5 text-sm bg-muted/50 hover:bg-muted rounded-lg border border-border transition-colors"
+          className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1.5 text-xs sm:text-sm bg-muted/50 hover:bg-muted rounded-lg border border-border transition-colors"
         >
           <Calendar className="h-4 w-4 text-muted-foreground" />
-          <span>{periodLabel}</span>
+          <span className="hidden md:inline">{periodLabel}</span>
           <ChevronDown className={cn('h-3 w-3 text-muted-foreground transition-transform', periodOpen && 'rotate-180')} />
         </button>
         {periodOpen && (
@@ -265,14 +447,14 @@ function TopbarFilters() {
         )}
       </div>
 
-      {/* Region Filter */}
-      <div ref={regionRef} className="relative">
+      {/* Region Filter - hidden on smallest screens */}
+      <div ref={regionRef} className="relative hidden md:block">
         <button
           onClick={() => setRegionOpen(!regionOpen)}
-          className="flex items-center gap-2 px-3 py-1.5 text-sm bg-muted/50 hover:bg-muted rounded-lg border border-border transition-colors"
+          className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1.5 text-xs sm:text-sm bg-muted/50 hover:bg-muted rounded-lg border border-border transition-colors"
         >
           <MapPin className="h-4 w-4 text-muted-foreground" />
-          <span>{regionLabel}</span>
+          <span className="hidden lg:inline">{regionLabel}</span>
           <ChevronDown className={cn('h-3 w-3 text-muted-foreground transition-transform', regionOpen && 'rotate-180')} />
         </button>
         {regionOpen && (
@@ -302,15 +484,15 @@ function TopbarFilters() {
         )}
       </div>
 
-      {/* Command Palette Trigger - wider, central search */}
-      <div ref={commandRef} className="relative flex-1 max-w-xl">
+      {/* Command Palette Trigger - responsive search */}
+      <div ref={commandRef} className="relative flex-1 min-w-0 max-w-xl">
         <button
           onClick={() => setCommandOpen(true)}
-          className="w-full flex items-center gap-3 px-4 py-2 text-sm text-muted-foreground bg-muted/30 hover:bg-muted/50 rounded-xl border border-border/50 transition-colors"
+          className="w-full flex items-center gap-2 sm:gap-3 px-2 sm:px-4 py-1.5 sm:py-2 text-sm text-muted-foreground bg-muted/30 hover:bg-muted/50 rounded-lg sm:rounded-xl border border-border/50 transition-colors"
         >
-          <Search className="h-4 w-4" />
-          <span className="flex-1 text-left">Sök i appen...</span>
-          <kbd className="text-xs bg-background/80 px-2 py-0.5 rounded-md border border-border">⌘K</kbd>
+          <Search className="h-4 w-4 flex-shrink-0" />
+          <span className="flex-1 text-left truncate text-xs sm:text-sm">Sök...</span>
+          <kbd className="hidden sm:inline text-xs bg-background/80 px-2 py-0.5 rounded-md border border-border">⌘K</kbd>
         </button>
         
         {/* Command Palette Modal */}
@@ -471,11 +653,11 @@ function HQLayoutInner() {
 
       {/* Main content */}
       <div className={cn(
-        'flex flex-col min-h-screen transition-all duration-200 overflow-x-hidden',
+        'flex flex-col min-h-screen transition-all duration-200 overflow-x-hidden w-full max-w-full',
         sidebarCollapsed ? 'lg:ml-16' : 'lg:ml-64'
       )}>
         {/* Topbar */}
-        <header className="sticky top-0 z-30 flex h-14 items-center gap-2 md:gap-3 border-b border-border bg-card px-2 md:px-4 lg:px-6 min-w-0 overflow-x-auto">
+        <header className="sticky top-0 z-30 flex h-14 items-center gap-1 sm:gap-2 md:gap-3 border-b border-border bg-card px-2 md:px-4 lg:px-6 min-w-0 max-w-full overflow-hidden">
           {/* Collapse sidebar button (desktop only) */}
           <button
             onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
@@ -520,6 +702,7 @@ function HQLayoutInner() {
             <Route path="franchisees" element={<FranchiseesPage />} />
             <Route path="compliance" element={<CompliancePage />} />
             <Route path="integrations" element={<IntegrationsPage />} />
+            <Route path="competitor-intelligence" element={<CompetitorIntelligencePage />} />
             <Route path="settings" element={<SettingsPage />} />
             {/* Internal test pages - no nav links */}
             <Route path="ai-test" element={<AIPipelineTestPage />} />
@@ -529,8 +712,8 @@ function HQLayoutInner() {
         </main>
       </div>
 
-      {/* AI Chat Panel - floating FAB + slide-in panel */}
-      <AIChatPanel />
+      {/* AI Chat - floating bubble + chat window */}
+      <FloatingChat />
     </div>
   )
 }
