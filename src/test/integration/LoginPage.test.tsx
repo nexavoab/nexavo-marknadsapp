@@ -2,7 +2,6 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { BrowserRouter } from 'react-router-dom'
 
-// Mock AuthContext före import av LoginPage
 vi.mock('@/contexts/AuthContext', () => ({
   useAuth: vi.fn().mockReturnValue({
     signIn: vi.fn().mockResolvedValue(undefined),
@@ -18,10 +17,10 @@ describe('LoginPage', () => {
     vi.clearAllMocks()
   })
 
-  it('renderar email och password-fält', () => {
+  it('renderar email och password-falt', () => {
     render(<BrowserRouter><LoginPage /></BrowserRouter>)
     expect(screen.getByLabelText(/e-post/i)).toBeInTheDocument()
-    expect(screen.getByLabelText(/lösenord/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/l.senord/i)).toBeInTheDocument()
   })
 
   it('renderar login-knapp', () => {
@@ -29,8 +28,9 @@ describe('LoginPage', () => {
     expect(screen.getByRole('button', { name: /logga in/i })).toBeInTheDocument()
   })
 
-  it('visar titel', () => {
+  it('visar branding och produkttitel', () => {
     render(<BrowserRouter><LoginPage /></BrowserRouter>)
-    expect(screen.getByText('Nexavo Marknadsapp')).toBeInTheDocument()
+    expect(screen.getByText('Nexavo')).toBeInTheDocument()
+    expect(screen.getByText('Marknadsapp')).toBeInTheDocument()
   })
 })

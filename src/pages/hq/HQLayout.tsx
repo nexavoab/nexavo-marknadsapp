@@ -29,6 +29,7 @@ import {
   FlaskConical
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import SenioritaChat from '@/components/SenioritaChat'
 
 // Brand pages
 import BrandOverviewPage from './brand/BrandOverviewPage'
@@ -526,6 +527,9 @@ function HQLayoutInner() {
         )}
         </main>
       </div>
+
+      {/* Seniorita AI-chatt */}
+      <SenioritaChat />
     </div>
   )
 }

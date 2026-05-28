@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { redirectToExternalUrl } from '@/lib/navigation'
 import { 
   Plug, 
   CheckCircle2, 
@@ -304,8 +305,7 @@ export default function IntegrationsPage() {
 
       const { url } = await response.json()
       
-      // Redirect to OAuth provider
-      window.location.href = url
+      redirectToExternalUrl(url)
     } catch (err) {
       console.error('Connect failed:', err)
       setError(err instanceof Error ? err.message : 'Anslutning misslyckades')

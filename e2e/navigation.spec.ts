@@ -8,12 +8,12 @@ test.describe('Navigation (unauthenticated)', () => {
 
   test('login-sidan laddas korrekt', async ({ page }) => {
     await page.goto('/login')
-    // CardTitle renderas som h3, verifiera texten istället
-    await expect(page.getByText('Nexavo Marknadsapp')).toBeVisible()
+    await expect(page.getByText('Nexavo')).toBeVisible()
+    await expect(page.getByText('Marknadsapp')).toBeVisible()
     await expect(page.locator('form')).toBeVisible()
   })
 
-  test('okänd route redirectar till login', async ({ page }) => {
+  test('okand route redirectar till login', async ({ page }) => {
     await page.goto('/nagonting-som-inte-finns')
     await expect(page).toHaveURL(/login/)
   })

@@ -1,8 +1,8 @@
 import { test as base, expect } from '@playwright/test'
-import { test, loginAs } from './fixtures/auth'
+import { test } from './fixtures/auth'
 
 base.describe('HQ Navigation Flow', () => {
-  base.test('HQ-routes redirectar till login när ej autentiserad', async ({ page }) => {
+  base.test('HQ-routes redirectar till login nar ej autentiserad', async ({ page }) => {
     await page.goto('/hq')
     await expect(page).toHaveURL(/login/)
   })
@@ -23,7 +23,7 @@ base.describe('HQ Navigation Flow', () => {
     await expect(page.locator('form')).toBeVisible()
   })
 
-  base.test('Login-formuläret finns efter redirect', async ({ page }) => {
+  base.test('Login-formularet finns efter redirect', async ({ page }) => {
     await page.goto('/hq/campaigns/new')
     await expect(page).toHaveURL(/login/)
     await expect(page.getByRole('button', { name: /logga in/i })).toBeVisible()
@@ -45,14 +45,25 @@ test.describe('HQ Authenticated Flow', () => {
   test('HQ ser Dashboard', async ({ hqPage: page }) => {
     await page.goto('/hq')
     await expect(page.getByRole('heading').first()).toBeVisible()
-    await expect(page.getByText(/översikt|marknadsplattform/i)).toBeVisible()
+    await expect(page.getByText(/versikt|marknadsplattform/i)).toBeVisible()
   })
 
   test('Sidomenyn visar navigationspunkter', async ({ hqPage: page }) => {
     await page.goto('/hq')
-    const navItems = ['Dashboard', 'Kampanjer', 'Varumärke', 'Kalender', 'Franchisetagare', 'Inställningar']
+    const sidebar = page.locator('aside nav')
+    const navItems = [
+      { href: '/hq', name: /dashboard/i },
+      { href: '/hq/campaigns', name: /kampanjer/i },
+      { href: '/hq/brand', name: /varum/i },
+      { href: '/hq/calendar', name: /kalender/i },
+      { href: '/hq/franchisees', name: /franchisetagare/i },
+      { href: '/hq/settings', name: /inst/i },
+    ]
+
     for (const item of navItems) {
-      await expect(page.getByRole('link', { name: new RegExp(item, 'i') })).toBeVisible()
+      const link = sidebar.getByRole('link', { name: item.name })
+      await expect(link).toBeVisible()
+      await expect(link).toHaveAttribute('href', item.href)
     }
   })
 
@@ -64,7 +75,7 @@ test.describe('HQ Authenticated Flow', () => {
     await expect(page).toHaveURL(/\/hq\/campaigns\/new/)
   })
 
-  test('Brand Overview visar varumärkesinfo', async ({ hqPage: page }) => {
+  test('Brand Overview visar varumarkesinfo', async ({ hqPage: page }) => {
     await page.goto('/hq/brand')
     await expect(page.getByRole('heading').first()).toBeVisible()
   })
@@ -73,13 +84,14 @@ test.describe('HQ Authenticated Flow', () => {
 base.describe('HQ Page Structure', () => {
   base.test('Login-sidan har korrekt struktur', async ({ page }) => {
     await page.goto('/login')
-    await expect(page.getByText('Nexavo Marknadsapp')).toBeVisible()
+    await expect(page.getByText('Nexavo')).toBeVisible()
+    await expect(page.getByText('Marknadsapp')).toBeVisible()
     await expect(page.getByLabel(/e-post/i)).toBeVisible()
-    await expect(page.getByLabel(/lösenord/i)).toBeVisible()
+    await expect(page.getByLabel(/l.senord/i)).toBeVisible()
     await expect(page.getByRole('button', { name: /logga in/i })).toBeVisible()
   })
 
-  base.test('Login-sidan har rätt URL', async ({ page }) => {
+  base.test('Login-sidan har ratt URL', async ({ page }) => {
     await page.goto('/login')
     await expect(page).toHaveURL(/login/)
   })
